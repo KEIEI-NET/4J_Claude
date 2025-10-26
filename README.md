@@ -1,258 +1,171 @@
-# Cassandra Code Analyzer
+# 4J_Claude: 汎用ソースコード解析システム
 
-*バージョン: v2.0.0*
-*最終更新: 2025年01月26日 20:45 JST*
+<p align="center">
+  <img src="https://img.shields.io/badge/Status-Phase%201%20Completed-success" alt="Phase 1 Completed"/>
+  <img src="https://img.shields.io/badge/Phase%202-Planning-blue" alt="Phase 2 Planning"/>
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License"/>
+  <img src="https://img.shields.io/badge/Python-3.11+-blue" alt="Python 3.11+"/>
+</p>
 
-**Javaコード内のApache Cassandraクエリを静的解析し、パフォーマンス問題を早期検出するインテリジェント分析システム**
+## 📋 プロジェクト概要
 
-[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/downloads/)
-[![Test Coverage](https://img.shields.io/badge/coverage-95.34%25-brightgreen.svg)](tests/)
-[![Tests](https://img.shields.io/badge/tests-284%20passed-success.svg)](tests/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+**4J_Claude** は、ソースコードファイル群を解析し、**Neo4Jグラフデータベース**で視覚化し、バグ内容から関連ソースファイルを自動検出するための汎用ソースコード解析システムです。
 
-## 📋 概要
+### 核心機能
 
-Cassandra Code Analyzerは、Javaコードベースに含まれるApache Cassandra関連のパフォーマンス問題とアンチパターンを自動検出する高度な静的解析ツールです。基本的なパターンマッチングから、LLMを活用したコンテキスト認識型の高度な検出まで、多層的な分析アプローチを提供します。
+1. **Neo4Jグラフデータベースによる可視化**
+   - ファイル、クラス、メソッド、クエリ、テーブル、問題の関係をグラフで表現
+   - インタラクティブな依存関係の探索
 
-### 🌟 主な特徴
+2. **影響範囲分析**
+   - ファイル/テーブル変更時の影響トレース
+   - リスク評価と依存関係の可視化
 
-#### ✅ **包括的な検出機能**
-- **基本検出器**: 4種類の重要なパターンを高速検出
-  - ALLOW FILTERING（全テーブルスキャンのリスク）
-  - Partition Key未使用（パフォーマンス問題）
-  - 過大なBatch操作（メモリ・ネットワーク負荷）
-  - Prepared Statement未使用（セキュリティ・パフォーマンス）
+3. **バグ関連ソース自動検索**
+   - バグ内容を入力 → 関連ソースファイル群を自動抽出
+   - 親子関係・依存関係の切り出し
 
-- **スマート検出器**: LLM統合による高度な分析（Phase 2）
-  - コンテキストを理解した誤検出の削減
-  - 複雑なパターンの認識
-  - ビジネスロジックを考慮した判定
+4. **複数データベース対応**
+   - Cassandra, MySQL, Redis, Elasticsearch, SQL Server
 
-#### ✅ **多様な出力形式**
-- **JSON**: CI/CD統合・プログラム連携
-- **Markdown**: コードレビュー・ドキュメント化
-- **HTML**: インタラクティブなダッシュボード
+---
 
-#### ✅ **エンタープライズ品質**
-- テストカバレッジ: **95.34%**（284テスト）
-- 型安全性: mypy完全準拠
-- 平均処理速度: 10ファイル/秒
-- 誤検出率: < 10%（LLM統合時）
+## 🎯 プロジェクト構成（4フェーズ）
 
-## 🏗️ システムアーキテクチャ
+### ✅ Phase 1: Cassandra特化型コード分析システム（完了）
+**期間**: 2025年10月28日 - 11月8日
+**ステータス**: ✅ **完了（95.34%テストカバレッジ達成）**
 
-### 全体処理フロー
+**成果物**:
+- Javaファイルの静的解析
+- CQL（Cassandra Query Language）の抽出と問題検出
+- 4つの検出器：ALLOW FILTERING、Partition Key未使用、大量BATCH、Prepared Statement未使用
+- HTML/JSON/Markdownレポート生成
+- CLI実装
 
-```mermaid
-flowchart TB
-    Start([開始]) --> Input[/Javaファイル入力/]
-    Input --> Parser{パーサー選択}
+**ディレクトリ**: [`phase1_cassandra/`](./phase1_cassandra/)
 
-    Parser --> |基本| RegexParser[正規表現パーサー]
-    Parser --> |高度| ASTParser[AST パーサー]
+---
 
-    RegexParser --> Extract[Cassandra呼び出し抽出]
-    ASTParser --> Extract
+### 🔄 Phase 2: LLM統合（計画中）
+**期間**: 2025年11月11日 - 11月22日
+**ステータス**: 🔵 **計画中**
 
-    Extract --> Calls[(CassandraCall リスト)]
+**目標**:
+- Claude Sonnet 4.5 / GPT-5 Codex APIによる深い分析
+- データモデル評価機能
+- Consistency Level詳細分析
+- 自動修正提案生成
+- コスト管理システム
 
-    Calls --> DetectorPipeline{検出パイプライン}
+**ディレクトリ**: `phase2_llm/`（準備中）
 
-    DetectorPipeline --> BasicDetectors[基本検出器]
-    DetectorPipeline --> |設定により| SmartDetectors[スマート検出器]
+**主要タスク**:
+- Task 10.1: LLMクライアント実装
+- Task 10.2: ハイブリッド分析エンジン
+- Task 10.3: データモデル評価機能
+- Task 11.1: 自動修正提案生成
+- Task 11.2: コスト管理システム
 
-    BasicDetectors --> Issues[(Issue リスト)]
+---
 
-    SmartDetectors --> LLMAnalysis[LLM分析]
-    LLMAnalysis --> ContextEval[コンテキスト評価]
-    ContextEval --> Issues
+### 🌐 Phase 3: 本格展開 - Neo4Jグラフデータベース統合（計画中）
+**期間**: 2025年11月25日 - 2026年1月3日
+**ステータス**: 🔵 **計画中**
 
-    Issues --> Aggregation[結果集約]
-    Aggregation --> Result[(AnalysisResult)]
+**目標**: 真の核心機能の実装
 
-    Result --> Reporter{レポーター選択}
-    Reporter --> |JSON| JSONReport[JSONレポート]
-    Reporter --> |Markdown| MDReport[Markdownレポート]
-    Reporter --> |HTML| HTMLReport[HTMLレポート]
+#### Week 5-6: Neo4Jグラフデータベース統合
+**Neo4Jスキーマ設計**:
+- **ノードタイプ**: FileNode, ClassNode, MethodNode, CQLQueryNode, TableNode, IssueNode
+- **リレーションシップ**: CONTAINS, DEFINES, EXECUTES, ACCESSES, HAS_ISSUE, REFERENCES
 
-    JSONReport --> Output[/レポート出力/]
-    MDReport --> Output
-    HTMLReport --> Output
+**影響範囲分析**:
+- ファイル変更の影響分析
+- 依存関係トレース
+- リスク評価
 
-    Output --> End([終了])
+#### Week 7-8: 並列処理とダッシュボード
+**Celery並列処理基盤**:
+- 35,000ファイルを2時間以内に処理
+- RabbitMQブローカー + Redisバックエンド
 
-    style Start fill:#e1f5e1
-    style End fill:#e1f5e1
-    style LLMAnalysis fill:#fff3cd
-    style ContextEval fill:#fff3cd
-    style Issues fill:#d4edda
-    style Result fill:#d4edda
-```
+**FastAPI実装**:
+- REST APIエンドポイント
+  - `POST /analyze` - 分析実行
+  - `GET /issues` - 問題一覧取得
+  - `GET /impact/{table}` - 影響範囲分析
+  - `GET /graph` - グラフデータ取得
 
-### コンポーネントアーキテクチャ
+**Reactダッシュボード**:
+- D3.jsによるグラフ可視化
+- インタラクティブな探索機能
+- 問題一覧・フィルタリング
 
-```mermaid
-graph TB
-    subgraph "入力層"
-        JavaFiles[Javaファイル]
-        Config[設定ファイル]
-    end
+#### Week 9-10: CI/CD統合と本番運用
+**GitHub Actions ワークフロー**:
+- プルリクエストでの自動分析
+- Slack/メール通知
 
-    subgraph "パーサー層"
-        JavaParser[JavaParser]
-        ASTParser[ASTParser]
-        CQLParser[CQLParser]
-    end
+**Docker Compose構成**:
+- Neo4j, RabbitMQ, Redis, Celery Worker (x8), FastAPI, Nginx
+- Prometheus/Grafana監視
 
-    subgraph "検出器層"
-        subgraph "基本検出器"
-            AllowFiltering[AllowFilteringDetector]
-            PartitionKey[PartitionKeyDetector]
-            BatchSize[BatchSizeDetector]
-            PreparedStmt[PreparedStatementDetector]
-        end
+**ディレクトリ**: `phase3_neo4j/`（準備中）
 
-        subgraph "スマート検出器"
-            SmartAF[SmartAllowFilteringDetector]
-            SmartPK[SmartPartitionKeyDetector]
-        end
-    end
+**主要タスク**:
+- Task 12.1: Neo4jスキーマ設計
+- Task 12.2: Neo4jクライアント実装
+- Task 12.3: 影響範囲分析
+- Task 13.1: Celery並列処理基盤
+- Task 13.2: FastAPI実装
+- Task 13.3: Reactダッシュボード
+- Task 14.1: CI/CD統合
+- Task 14.3: 本番環境構築
 
-    subgraph "LLM統合層"
-        AnthropicClient[AnthropicClient]
-        LLMAnalyzer[LLMAnalyzer]
-    end
+---
 
-    subgraph "分析層"
-        Analyzer[CassandraAnalyzer]
-        Evaluator[Evaluator]
-    end
+### 🗄️ Phase 4: 他データベース展開（計画中）
+**期間**: 2026年1月6日 - 2月14日
+**ステータス**: 🔵 **計画中**
 
-    subgraph "レポート層"
-        JSONReporter[JSONReporter]
-        MarkdownReporter[MarkdownReporter]
-        HTMLReporter[HTMLReporter]
-    end
+**目標**: 全データベース対応完了
 
-    subgraph "出力層"
-        Reports[レポートファイル]
-        Metrics[メトリクス]
-    end
+**対応データベース**:
+1. **MySQL**（Week 11-12）
+   - N+1問題検出
+   - フルテーブルスキャン検出
+   - トランザクション漏れ
+   - デッドロックリスク
 
-    JavaFiles --> JavaParser
-    JavaFiles --> ASTParser
-    Config --> Analyzer
+2. **Redis**（Week 13-14）
+   - キャッシュ整合性チェック
+   - TTL設定検証
+   - メモリ使用量推定
 
-    JavaParser --> AllowFiltering
-    JavaParser --> PartitionKey
-    JavaParser --> BatchSize
-    JavaParser --> PreparedStmt
+3. **Elasticsearch**（Week 13-14）
+   - クエリDSL解析
+   - インデックス設計評価
+   - シャード設定検証
 
-    ASTParser --> SmartAF
-    ASTParser --> SmartPK
+4. **SQL Server**（Week 15-16）
+   - T-SQL解析
+   - ストアドプロシージャ分析
+   - トランザクション分離レベル
 
-    SmartAF --> AnthropicClient
-    SmartPK --> AnthropicClient
-    AnthropicClient --> LLMAnalyzer
+**ディレクトリ**: `phase4_multidb/`（準備中）
 
-    AllowFiltering --> Analyzer
-    PartitionKey --> Analyzer
-    BatchSize --> Analyzer
-    PreparedStmt --> Analyzer
-    SmartAF --> Analyzer
-    SmartPK --> Analyzer
-
-    Analyzer --> Evaluator
-    Analyzer --> JSONReporter
-    Analyzer --> MarkdownReporter
-    Analyzer --> HTMLReporter
-
-    JSONReporter --> Reports
-    MarkdownReporter --> Reports
-    HTMLReporter --> Reports
-    Evaluator --> Metrics
-
-    style AnthropicClient fill:#e6f3ff
-    style LLMAnalyzer fill:#e6f3ff
-    style SmartAF fill:#fff3cd
-    style SmartPK fill:#fff3cd
-```
-
-### 検出器パイプライン
-
-```mermaid
-sequenceDiagram
-    participant F as Javaファイル
-    participant P as Parser
-    participant BD as 基本検出器
-    participant SD as スマート検出器
-    participant LLM as LLM API
-    participant A as Aggregator
-    participant R as Reporter
-
-    F->>P: ソースコード
-    P->>P: CQL抽出
-    P->>BD: CassandraCall
-    P->>SD: CassandraCall
-
-    BD->>BD: パターンマッチング
-    BD->>A: 基本Issue
-
-    SD->>SD: コンテキスト分析
-    SD->>LLM: 分析要求
-    LLM->>LLM: 深層分析
-    LLM->>SD: 分析結果
-    SD->>SD: 信頼度計算
-    SD->>A: スマートIssue
-
-    A->>A: 重複除去
-    A->>A: 優先度付け
-    A->>R: AnalysisResult
-    R->>R: フォーマット生成
-
-    Note over BD: 高速・確実な検出
-    Note over SD,LLM: 高精度・文脈理解
-    Note over A: 結果の統合と最適化
-```
-
-### LLM統合フロー
-
-```mermaid
-flowchart LR
-    subgraph "検出フェーズ"
-        Query[CQLクエリ] --> Context[コンテキスト収集]
-        Context --> Prompt[プロンプト生成]
-    end
-
-    subgraph "LLM分析フェーズ"
-        Prompt --> API[Anthropic API]
-        API --> Response[レスポンス]
-        Response --> Parse[結果パース]
-    end
-
-    subgraph "評価フェーズ"
-        Parse --> Confidence[信頼度計算]
-        Confidence --> Threshold{閾値判定}
-        Threshold -->|高信頼度| Report[レポート追加]
-        Threshold -->|低信頼度| Discard[破棄]
-    end
-
-    style API fill:#e6f3ff
-    style Confidence fill:#fff3cd
-    style Report fill:#d4edda
-    style Discard fill:#f8d7da
-```
+---
 
 ## 🚀 クイックスタート
 
-### インストール
+### Phase 1（Cassandraアナライザー）を試す
 
 ```bash
-# リポジトリのクローン
-git clone https://github.com/your-org/cassandra-analyzer.git
-cd cassandra-analyzer
+# Phase 1ディレクトリに移動
+cd phase1_cassandra/
 
-# 仮想環境の作成と有効化
+# 仮想環境の作成とアクティベート
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
@@ -260,255 +173,173 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 pip install -e .
 
-# LLM統合を使用する場合は設定ファイルを準備
-cp config.example.yaml config.yaml
-# config.yamlにAnthropicのAPIキーを設定
+# 分析実行
+cassandra-analyzer analyze /path/to/your/java/project \
+    --output reports/analysis_report.html \
+    --config config.yaml
+
+# テスト実行
+pytest tests/ -v --cov
 ```
 
-### 基本的な使用方法
-
-```python
-from cassandra_analyzer.analyzer import CassandraAnalyzer
-from cassandra_analyzer.reporters import JSONReporter, MarkdownReporter, HTMLReporter
-
-# 基本分析（高速）
-analyzer = CassandraAnalyzer()
-result = analyzer.analyze_file("path/to/YourDao.java")
-
-# スマート分析（高精度）
-config = {
-    "llm": {
-        "enabled": True,
-        "api_key": "your-api-key",
-        "model": "claude-3-haiku-20240307"
-    }
-}
-analyzer = CassandraAnalyzer(config=config)
-result = analyzer.analyze_directory("path/to/dao/directory")
-
-# レポート生成
-json_reporter = JSONReporter()
-json_reporter.generate_and_save(result, "report.json")
-
-md_reporter = MarkdownReporter()
-md_reporter.generate_and_save(result, "report.md")
-
-html_reporter = HTMLReporter()
-html_reporter.generate_and_save(result, "report.html")
-```
-
-### CLIの使用
-
-```bash
-# 基本的な分析
-cassandra-analyzer analyze path/to/dao --output report.json
-
-# スマート分析の有効化
-cassandra-analyzer analyze path/to/dao \
-  --enable-llm \
-  --api-key $ANTHROPIC_API_KEY \
-  --output report.html \
-  --format html
-
-# 設定ファイルを使用
-cassandra-analyzer analyze path/to/dao \
-  --config config.yaml \
-  --output analysis_report.md
-```
-
-## 📊 検出機能の詳細
-
-### 基本検出器
-
-| 検出器 | 重要度 | 説明 | 精度 | 速度 |
-|--------|--------|------|------|------|
-| **ALLOW FILTERING** | 🟠 High | 全テーブルスキャンの検出 | 95% | < 1ms |
-| **Partition Key未使用** | 🔴 Critical | WHERE句でのPK欠如 | 90% | < 1ms |
-| **Batch Size** | 🟡 Medium | 過大なバッチ操作 | 100% | < 1ms |
-| **Prepared Statement** | 🔵 Low | 文字列結合によるクエリ | 85% | < 1ms |
-
-### スマート検出器（LLM統合）
-
-| 検出器 | 重要度 | 説明 | 精度 | 速度 |
-|--------|--------|------|------|------|
-| **Smart ALLOW FILTERING** | 🟠 High | コンテキストを考慮した検出 | 98% | ~100ms |
-| **Smart Partition Key** | 🔴 Critical | ビジネスロジックを理解 | 95% | ~100ms |
-
-## 📈 パフォーマンスメトリクス
-
-### 処理性能
-
-```
-ファイル数    基本分析    スマート分析
------------------------------------------
-10           < 1秒      2-3秒
-100          2-3秒      20-30秒
-1000         20-30秒    3-5分
-```
-
-### 検出精度
-
-```
-              基本検出器   スマート検出器
------------------------------------------
-真陽性率        85%         95%
-偽陽性率        15%         5%
-偽陰性率        10%         3%
-F1スコア        0.87        0.95
-```
-
-## ⚙️ 設定オプション
-
-### 基本設定
-
-```yaml
-# config.yaml
-detectors:
-  # 有効にする検出器
-  enabled:
-    - allow_filtering
-    - partition_key
-    - batch_size
-    - prepared_statement
-
-  # 検出器別設定
-  configs:
-    batch_size:
-      threshold: 50  # バッチサイズ閾値
-
-    partition_key:
-      strict_mode: true  # 厳格モード
-
-# レポート設定
-reporters:
-  json:
-    indent: 2
-    ensure_ascii: false
-
-  markdown:
-    group_by_file: true
-    include_recommendations: true
-
-  html:
-    title: "Cassandra Analysis Report"
-    theme: "dark"  # light/dark
-```
-
-### LLM統合設定
-
-```yaml
-# LLM設定（オプション）
-llm:
-  enabled: true
-  provider: anthropic
-  api_key: ${ANTHROPIC_API_KEY}
-  model: claude-3-haiku-20240307
-
-  # プロンプト設定
-  prompts:
-    temperature: 0.3
-    max_tokens: 1000
-
-  # キャッシュ設定
-  cache:
-    enabled: true
-    ttl: 3600  # 秒
-    max_size: 1000  # エントリー数
-```
-
-## 🧪 テストとメトリクス
-
-### テストカバレッジ
-
-```
-Module                              Coverage
-------------------------------------------------
-cassandra_analyzer/analyzer.py        98.2%
-cassandra_analyzer/detectors/         96.5%
-cassandra_analyzer/parsers/           94.8%
-cassandra_analyzer/reporters/          97.3%
-cassandra_analyzer/llm/                92.1%
-cassandra_analyzer/models/             100%
-------------------------------------------------
-Total                                  95.34%
-```
-
-### テスト実行
-
-```bash
-# 全テスト実行
-pytest tests/ -v
-
-# カバレッジレポート
-pytest tests/ --cov=src/cassandra_analyzer --cov-report=html
-
-# 特定のテストカテゴリ
-pytest tests/unit/ -v          # ユニットテスト
-pytest tests/integration/ -v   # 統合テスト
-pytest tests/e2e/ -v           # E2Eテスト
-```
-
-## 📚 ドキュメント
-
-| ドキュメント | 説明 |
-|-------------|------|
-| [USAGE.md](USAGE.md) | 詳細な使用方法とサンプルコード |
-| [DEVELOPMENT.md](DEVELOPMENT.md) | 開発者向けガイドとアーキテクチャ |
-| [API Documentation](docs/api/) | APIリファレンス |
-| [PHASE2_COMPLETION.md](PHASE2_COMPLETION.md) | Phase 2実装の詳細 |
-
-## 🎯 プロジェクトフェーズ
-
-### Phase 1 (完了) ✅
-- 基本的な4つの検出器実装
-- 3種類のレポート形式
-- 90%以上のテストカバレッジ
-- CLIインターフェース
-
-### Phase 2 (完了) ✅
-- LLM統合による高度な検出
-- ASTベースのパーサー
-- 誤検出率の大幅削減
-- パフォーマンス最適化
-
-### Phase 3 (計画中) 🔄
-- リアルタイム分析
-- IDE統合プラグイン
-- 自動修正提案
-- クラウドダッシュボード
-
-## 🤝 コントリビューション
-
-プロジェクトへの貢献を歓迎します！
-
-1. このリポジトリをフォーク
-2. フィーチャーブランチを作成 (`git checkout -b feature/amazing-feature`)
-3. 変更をコミット (`git commit -m 'Add amazing feature'`)
-4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
-5. Pull Requestを作成
-
-詳細は[DEVELOPMENT.md](DEVELOPMENT.md)をご覧ください。
-
-## 📝 ライセンス
-
-このプロジェクトは[MIT License](LICENSE)のもとで公開されています。
-
-## 🙏 謝辞
-
-- Apache Cassandraコミュニティ
-- Anthropic Claude APIチーム
-- すべてのコントリビューター
-
-## 📞 サポート
-
-- **Issues**: [GitHub Issues](https://github.com/your-org/cassandra-analyzer/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/cassandra-analyzer/discussions)
-- **Email**: support@cassandra-analyzer.dev
+詳細は [`phase1_cassandra/README_CASSANDRA.md`](./phase1_cassandra/README_CASSANDRA.md) を参照してください。
 
 ---
 
-*最終更新: 2025年01月26日 20:45 JST*
-*バージョン: v2.0.0*
+## 📊 プロジェクト進捗
 
-**更新履歴:**
-- v2.0.0 (2025年01月26日): mermaid図追加、LLM統合機能の詳細化、アーキテクチャ説明の充実化
+```
+全体進捗: [█████░░░░░░░░░░░░░░░] 25% (Phase 1完了)
+
+Phase 1: [████████████████████] 100% (完了)
+Phase 2: [░░░░░░░░░░░░░░░░░░░░]   0% (計画中)
+Phase 3: [░░░░░░░░░░░░░░░░░░░░]   0% (計画中)
+Phase 4: [░░░░░░░░░░░░░░░░░░░░]   0% (計画中)
+```
+
+---
+
+## 🏗️ プロジェクト構造
+
+```
+4J_Claude/
+├── phase1_cassandra/          ✅ Phase 1: Cassandra特化型分析（完了）
+│   ├── src/cassandra_analyzer/
+│   │   ├── models/           # データモデル
+│   │   ├── parsers/          # JavaParser, CQLParser, ASTParser
+│   │   ├── detectors/        # 4つの問題検出器
+│   │   ├── reporters/        # HTML/JSON/Markdownレポーター
+│   │   ├── utils/            # ユーティリティ
+│   │   └── main.py           # CLIエントリーポイント
+│   ├── tests/                # 284テスト（95.34%カバレッジ）
+│   ├── docs/                 # ドキュメント
+│   └── README_CASSANDRA.md   # Phase 1詳細
+│
+├── phase2_llm/               🔵 Phase 2: LLM統合（計画中）
+│   └── README.md             # Phase 2計画
+│
+├── phase3_neo4j/             🔵 Phase 3: Neo4Jグラフデータベース（計画中）
+│   ├── src/
+│   │   ├── graph/            # Neo4jクライアント
+│   │   ├── analyzers/        # 影響範囲分析
+│   │   ├── api/              # FastAPI
+│   │   └── worker/           # Celery並列処理
+│   ├── dashboard/            # Reactダッシュボード
+│   └── README.md             # Phase 3計画
+│
+├── phase4_multidb/           🔵 Phase 4: 他DB展開（計画中）
+│   ├── parsers/
+│   │   ├── mysql_parser.py
+│   │   ├── redis_parser.py
+│   │   ├── elasticsearch_parser.py
+│   │   └── sqlserver_parser.py
+│   └── README.md             # Phase 4計画
+│
+├── docs/                     # プロジェクト全体ドキュメント
+│   ├── ARCHITECTURE.md       # アーキテクチャ設計
+│   ├── NEO4J_SCHEMA.md       # Neo4Jスキーマ設計
+│   └── API_SPEC.md           # API仕様書
+│
+├── README.md                 # このファイル（プロジェクト概要）
+└── TODO.md                   # 詳細タスク管理（2,253行）
+```
+
+---
+
+## 📈 成功指標
+
+### Phase 1（達成済み）
+- ✅ テストカバレッジ > 95%（達成: 95.34%）
+- ✅ 284テスト全成功
+- ✅ 4種類の問題検出器実装完了
+- ✅ HTML/JSON/Markdownレポート生成
+
+### Phase 2（目標）
+- [ ] LLM統合が動作
+- [ ] 自動修正提案が有用
+- [ ] LLM精度 > 85%
+- [ ] コスト管理が機能
+
+### Phase 3（目標）
+- [ ] Neo4jグラフDB構築完了
+- [ ] 並列処理で2時間以内に35,000ファイル分析
+- [ ] Reactダッシュボードが稼働
+- [ ] CI/CD統合完了
+
+### Phase 4（目標）
+- [ ] 5種DB全対応
+- [ ] クロスDB整合性チェック機能
+- [ ] 統合E2Eテスト成功
+- [ ] 全DB問題検出率 > 80%
+
+---
+
+## 💰 予算管理
+
+| Phase | 期間 | LLMコスト | インフラコスト | 月間合計 |
+|-------|------|-----------|----------------|----------|
+| Phase 1 | 2週間 | - | - | - |
+| Phase 2 | 2週間 | $315/月 | $100/月 | $415/月 |
+| Phase 3 | 6週間 | $315/月 | $670/月 | $985/月 |
+| Phase 4 | 6週間 | $315/月 | $670/月 | $985/月 |
+
+---
+
+## 🤝 開発ガイド
+
+### Phase 1の開発継続
+Phase 1のバグ修正や機能追加は `phase1_cassandra/` で作業してください。
+
+### Phase 2以降の開発開始
+各フェーズのディレクトリ内でREADME.mdを作成し、TODO.mdを参照して実装してください。
+
+### テスト実行
+```bash
+# Phase 1のテスト
+cd phase1_cassandra/
+pytest tests/ -v --cov
+
+# 将来: Phase 3のテスト
+cd phase3_neo4j/
+pytest tests/ -v --cov
+```
+
+---
+
+## 📝 詳細ドキュメント
+
+- **Phase 1詳細**: [`phase1_cassandra/README_CASSANDRA.md`](./phase1_cassandra/README_CASSANDRA.md)
+- **使用方法**: [`phase1_cassandra/USAGE.md`](./phase1_cassandra/USAGE.md)
+- **開発ガイド**: [`phase1_cassandra/DEVELOPMENT.md`](./phase1_cassandra/DEVELOPMENT.md)
+- **タスク管理**: [`TODO.md`](../TODO.md)（2,253行の詳細計画）
+
+---
+
+## 🎯 次のステップ
+
+1. **Phase 2の準備**（2025年11月11日開始予定）
+   - Claude Sonnet 4.5 APIキーの取得
+   - LLMクライアント実装の開始
+
+2. **Phase 3の設計**（2025年11月25日開始予定）
+   - Neo4Jスキーマの詳細設計
+   - Reactダッシュボードのモックアップ作成
+
+3. **Phase 4の調査**（2026年1月6日開始予定）
+   - MySQL/Redis/Elasticsearch/SQL Serverのパーサーライブラリ調査
+
+---
+
+## 📄 ライセンス
+
+MIT License
+
+---
+
+## 📧 お問い合わせ
+
+プロジェクトに関する質問や提案は、GitHubのIssuesでお願いします。
+
+---
+
+**🚀 Generated with Claude Code by Anthropic**
