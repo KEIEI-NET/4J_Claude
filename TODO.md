@@ -1669,7 +1669,7 @@ Phase 1は以下の条件を満たした時点で完了とする:
 **完了目標日**: 2025年11月22日
 **目標**: 深い分析の実現とLLMによる自動修正提案
 
-> 📋 **詳細実装計画**: [`phase2_llm/IMPLEMENTATION_PLAN.md`](./cassandra-analyzer/phase2_llm/IMPLEMENTATION_PLAN.md) を参照
+> 📋 **詳細実装計画**: [`phase2_llm/IMPLEMENTATION_PLAN.md`](./phase2_llm/IMPLEMENTATION_PLAN.md) を参照
 >
 > Phase 2の詳細な実装仕様（8週間の詳細ロードマップ、コンポーネント設計、成功指標）は上記ドキュメントに記載されています。
 
