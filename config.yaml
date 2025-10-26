@@ -1,0 +1,55 @@
+# Cassandra Analyzer Configuration
+
+analysis:
+  # 分析対象ディレクトリ
+  target_directories:
+    - "src/main/java"
+
+  # 対象ファイルパターン
+  file_patterns:
+    - "**/*DAO.java"
+    - "**/*Repository.java"
+    - "**/*Cassandra*.java"
+
+  # 除外パターン
+  exclude_patterns:
+    - "**/test/**"
+    - "**/Test*.java"
+    - "**/*Test.java"
+
+# 検出設定
+detection:
+  # ALLOW FILTERING検出
+  allow_filtering:
+    enabled: true
+    severity: "high"
+
+  # Partition Key検証
+  partition_key:
+    enabled: true
+    severity: "critical"
+
+  # Batch処理サイズ検証
+  batch_size:
+    enabled: true
+    threshold: 100
+    severity: "medium"
+
+  # Prepared Statement検証
+  prepared_statement:
+    enabled: true
+    min_executions: 5
+    severity: "low"
+
+# 出力設定
+output:
+  format: "html"  # html, json, console
+  output_path: "reports/analysis_report.html"
+  include_code_snippets: true
+  include_recommendations: true
+
+# ログ設定
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  format: "structured"  # simple, structured
+  output: "logs/analyzer.log"

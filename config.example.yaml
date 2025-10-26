@@ -1,0 +1,78 @@
+# Cassandra Analyzer Configuration Example
+# Copy this file to your project and customize as needed
+
+# Parser configuration
+parser:
+  # Parser type: "regex" (fast, basic) or "ast" (accurate, slower)
+  type: regex
+
+  # Resolve string constants (recommended for better accuracy)
+  resolve_constants: true
+
+# Enabled detectors
+# Available: allow_filtering, partition_key, batch_size, prepared_statement
+detectors:
+  - allow_filtering
+  - partition_key
+  - batch_size
+  - prepared_statement
+
+# Detector-specific configurations
+detector_configs:
+  # ALLOW FILTERING detection
+  allow_filtering:
+    enabled: true
+    severity: high
+    llm_enabled: false  # Enable LLM-based smart detection (requires API key)
+
+  # Partition key usage detection
+  partition_key:
+    enabled: true
+    severity: critical
+    llm_enabled: false  # Enable LLM-based schema inference (requires API key)
+    # table_schema: |
+    #   CREATE TABLE users (
+    #     user_id UUID PRIMARY KEY,
+    #     email TEXT,
+    #     name TEXT
+    #   );
+
+  # Batch size detection
+  batch_size:
+    enabled: true
+    severity: medium
+    max_batch_size: 100  # Maximum recommended batch size
+
+  # Prepared statement detection
+  prepared_statement:
+    enabled: true
+    severity: medium
+
+# LLM configuration (optional, for smart detectors)
+# Uncomment and configure if using LLM-based analysis
+# llm:
+#   anthropic_api_key: your-api-key-here
+#   model: claude-3-5-sonnet-20241022
+#   max_retries: 3
+#   retry_delay: 1.0
+
+# Output configuration
+output:
+  # Report formats: json, markdown, html
+  formats:
+    - json
+    - markdown
+
+  # Output directory for reports
+  directory: reports
+
+  # Include detailed recommendations
+  detailed: true
+
+# File patterns (for directory analysis)
+patterns:
+  include:
+    - "**/*.java"
+  exclude:
+    - "**/test/**"
+    - "**/generated/**"

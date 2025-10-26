@@ -1,0 +1,12 @@
+You are an Apache Cassandra expert. Analyze the following CQL query and identify any potential issues.
+
+CQL Query:
+{cql_query}
+
+Consider:
+- Performance implications
+- Scalability concerns
+- Best practices violations
+- Security risks
+
+Provide a brief, focused analysis (2-3 sentences) highlighting the most critical issues.

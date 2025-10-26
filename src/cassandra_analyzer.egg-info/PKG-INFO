@@ -1,0 +1,84 @@
+Metadata-Version: 2.4
+Name: cassandra-analyzer
+Version: 0.1.0
+Summary: Static code analyzer for Cassandra-related Java code
+Home-page: https://github.com/yourusername/cassandra-analyzer
+Author: Cassandra Analysis Team
+License: MIT
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Dynamic: home-page
+Dynamic: requires-python
+
+# Cassandra Code Analyzer
+
+Cassandra特化型静的コード分析システム - Phase 1 プロトタイプ
+
+## 概要
+
+JavaコードベースにおけるApache Cassandra関連の問題を検出する静的解析ツールです。
+
+### 検出機能
+
+- **ALLOW FILTERING検出**: 全テーブルスキャンのリスクを検出
+- **Partition Key検証**: パーティションキー未使用のクエリを検出
+- **Batch処理検証**: 過大なバッチ操作を検出
+- **Prepared Statement検証**: Prepared Statement未使用を検出
+
+## クイックスタート
+
+### インストール
+
+```bash
+# 仮想環境の作成
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# 依存パッケージのインストール
+pip install -r requirements.txt
+
+# 開発モードでインストール
+pip install -e .
+```
+
+### 使用方法
+
+```bash
+# 基本的な使用
+cassandra-analyzer analyze /path/to/java/code
+
+# 設定ファイル付き
+cassandra-analyzer analyze /path/to/code --config config.yaml
+
+# 出力先指定
+cassandra-analyzer analyze /path/to/code --output reports/report.html
+```
+
+## 開発
+
+### テスト実行
+
+```bash
+# 全テスト実行
+pytest tests/ -v
+
+# カバレッジ付き
+pytest tests/ --cov=src/cassandra_analyzer --cov-report=html
+
+# 型チェック
+mypy src/
+
+# リント
+ruff check .
+```
+
+## Phase 1 目標
+
+- 対象: 10-20個のCassandra DAOファイル
+- 目標: 3-5個の実際のバグを検出
+- 誤検出率: < 20%
+- 実行時間: < 30秒
+
+## ライセンス
+
+MIT License

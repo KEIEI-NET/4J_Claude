@@ -1,0 +1,28 @@
+{
+  "file_path": "tests/fixtures/sample_dao_bad1.java",
+  "ground_truth_issues": [
+    {
+      "issue_type": "ALLOW_FILTERING",
+      "line_number": 28,
+      "severity": "high",
+      "description": "SELECT query uses ALLOW FILTERING which causes full table scan"
+    },
+    {
+      "issue_type": "ALLOW_FILTERING",
+      "line_number": 36,
+      "severity": "high",
+      "description": "SELECT query with status uses ALLOW FILTERING"
+    },
+    {
+      "issue_type": "ALLOW_FILTERING",
+      "line_number": 44,
+      "severity": "high",
+      "description": "SELECT query with multiple conditions uses ALLOW FILTERING"
+    }
+  ],
+  "metadata": {
+    "annotator": "test",
+    "date": "2025-01-26",
+    "description": "Sample DAO with ALLOW FILTERING - three instances"
+  }
+}
