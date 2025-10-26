@@ -1,0 +1,183 @@
+# Phase 4 CI/CD Pipeline - Deployment
+# Trigger: Tagged releases (v*)
+
+name: CD - Deploy to Production
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_BACKEND: ${{ github.repository }}/phase4-backend
+  IMAGE_NAME_FRONTEND: ${{ github.repository }}/phase4-frontend
+
+jobs:
+  # === Build and Push Docker Images ===
+  build-and-push:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for backend
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}
+          tags: |
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./phase4_visualization
+          file: ./phase4_visualization/backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+      - name: Extract metadata for frontend
+        id: meta-frontend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}
+          tags: |
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./phase4_visualization/frontend
+          file: ./phase4_visualization/frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+
+  # === Deploy to Staging ===
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event.inputs.environment == 'staging' || startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: staging
+      url: https://staging.phase4.example.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to staging server
+        run: |
+          echo "Deploying to staging environment..."
+          # TODO: SSH接続、docker-compose pull/up など
+          # 例: ssh user@staging-server "cd /opt/phase4 && docker-compose pull && docker-compose up -d"
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests..."
+          # TODO: ヘルスチェック、基本的な動作確認
+          # curl https://staging.phase4.example.com/health
+
+  # === Deploy to Production ===
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy-staging]
+    if: github.event.inputs.environment == 'production' || startsWith(github.ref, 'refs/tags/v')
+    environment:
+      name: production
+      url: https://phase4.example.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to production server
+        run: |
+          echo "Deploying to production environment..."
+          # TODO: Blue/Greenデプロイメント、カナリアリリースなど
+
+      - name: Run production smoke tests
+        run: |
+          echo "Running production smoke tests..."
+          # TODO: 本番環境ヘルスチェック
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "Deployment successful! 🚀"
+          # TODO: Slack通知などを追加
+
+  # === Create Release ===
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            ## Phase 4 Visualization - Release ${{ github.ref }}
+
+            ### Changes
+            - Backend improvements
+            - Frontend enhancements
+            - Bug fixes and optimizations
+
+            ### Docker Images
+            - Backend: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:${{ github.ref_name }}`
+            - Frontend: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:${{ github.ref_name }}`
+          draft: false
+          prerelease: false
