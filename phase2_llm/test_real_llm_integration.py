@@ -19,8 +19,8 @@ if sys.platform == 'win32':
     import io
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-# 環境変数を読み込み
-env_path = Path(__file__).parent / ".env"
+# 環境変数を読み込み（ルートディレクトリから）
+env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
 # Phase 1とPhase 2のパスを追加

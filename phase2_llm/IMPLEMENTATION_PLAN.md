@@ -1,7 +1,7 @@
 # Phase 2: LLM統合 実装計画書
 
 **バージョン**: v2.0
-**最終更新**: 2025年10月26日
+**最終更新**: 2025年10月26日 JST
 **参照**: [`../llm_hybrid_analysis_spec.md`](../llm_hybrid_analysis_spec.md)
 
 ---

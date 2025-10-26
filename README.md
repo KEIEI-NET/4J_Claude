@@ -1,14 +1,15 @@
 # 4J_Claude: 汎用ソースコード解析システム
 
-*バージョン: v2.0.0*
-*最終更新: 2025年01月27日 15:30 JST*
+*バージョン: v3.0.0*
+*最終更新: 2025年01月27日 18:30 JST*
 
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Phase%201%20Completed-success" alt="Phase 1 Completed"/>
   <img src="https://img.shields.io/badge/Phase%202-Completed-success" alt="Phase 2 Completed"/>
-  <img src="https://img.shields.io/badge/Phase%203-Planning-blue" alt="Phase 3 Planning"/>
+  <img src="https://img.shields.io/badge/Phase%203-Completed-success" alt="Phase 3 Completed"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License"/>
   <img src="https://img.shields.io/badge/Python-3.11+-blue" alt="Python 3.11+"/>
+  <img src="https://img.shields.io/badge/Coverage-83%25-brightgreen" alt="Test Coverage 83%"/>
 </p>
 
 ## 📋 プロジェクト概要
@@ -17,188 +18,83 @@
 
 ### 核心機能
 
-1. **Neo4Jグラフデータベースによる可視化**
-   - ファイル、クラス、メソッド、クエリ、テーブル、問題の関係をグラフで表現
-   - インタラクティブな依存関係の探索
-
-2. **影響範囲分析**
-   - ファイル/テーブル変更時の影響トレース
-   - リスク評価と依存関係の可視化
-
-3. **バグ関連ソース自動検索**
-   - バグ内容を入力 → 関連ソースファイル群を自動抽出
-   - 親子関係・依存関係の切り出し
-
-4. **複数データベース対応**
-   - Cassandra, MySQL, Redis, Elasticsearch, SQL Server
+1. **静的コード解析** - データベース関連のアンチパターンと問題を検出
+2. **LLM統合** - Claude APIを使用した高度な意味論的分析
+3. **Neo4Jグラフ可視化** - コード構造と依存関係の視覚的表現（Phase 3）
+4. **影響範囲分析** - 変更の影響をトレースして可視化（Phase 3）
+5. **マルチDB対応** - Cassandra, MySQL, Redis, Elasticsearch, SQL Server（Phase 4）
 
 ---
 
 ## 🎯 プロジェクト構成（4フェーズ）
 
 ### ✅ Phase 1: Cassandra特化型コード分析システム（完了）
-**期間**: 2025年10月28日 - 11月8日
-**ステータス**: ✅ **完了（95.34%テストカバレッジ達成）**
+Javaコード内のCassandraクエリを静的解析し、パフォーマンス問題を早期検出するシステム。284のテストで95.34%のカバレッジを達成。
 
-**成果物**:
-- Javaファイルの静的解析
-- CQL（Cassandra Query Language）の抽出と問題検出
-- 4つの検出器：ALLOW FILTERING、Partition Key未使用、大量BATCH、Prepared Statement未使用
-- HTML/JSON/Markdownレポート生成
-- CLI実装
-
-**ディレクトリ**: [`phase1_cassandra/`](./phase1_cassandra/)
-
----
+**詳細ドキュメント**: 📖 [`phase1_cassandra/README_CASSANDRA.md`](./phase1_cassandra/README_CASSANDRA.md)
 
 ### ✅ Phase 2: LLM統合（完了）
-**期間**: 2025年11月11日 - 2025年1月27日
-**ステータス**: ✅ **完了（100%実装済み、90%テストカバレッジ達成）**
+Anthropic Claude APIを統合し、静的解析では検出困難な問題を発見。4つの分析モード（quick, standard, comprehensive, critical_only）を提供。
 
-**成果物**:
-- **HybridAnalysisEngine**: 静的解析とLLM分析を統合
-- **4つの分析モード**: quick, standard, comprehensive, critical_only
-- **Anthropic Claude API統合**: Claude 3 Opus使用
-- **信頼度計算システム**: AnalysisConfidence モデル実装
-- **コスト管理**: $0.05-0.10/実行に最適化
-- **環境変数管理**: python-dotenv統合
+**詳細ドキュメント**: 📖 [`phase2_llm/README.md`](./phase2_llm/README.md)
 
-**テスト結果**:
-- ユニットテスト: 63/63 passing (100%)
-- カバレッジ: 90%
-- 実LLM統合テスト: 全3モード成功
-- LLM独自発見: DATA_MODEL_ISSUE, QUERY_PERFORMANCE, CONSISTENCY_LEVEL
+### ✅ Phase 3: Neo4Jグラフデータベース統合（完了）
+コード構造をグラフDBで可視化し、影響範囲分析を実現。GraphBuilder、Neo4jClient、Celery並列処理タスクを実装し、統合テスト43件全通過。
 
-**ディレクトリ**: [`phase2_llm/`](./phase2_llm/)
+**詳細ドキュメント**: 📖 [`phase3_neo4j/README.md`](./phase3_neo4j/README.md)
+**主要成果**:
+- GraphBuilderによる分析結果のグラフ変換（100%カバレッジ）
+- Neo4jClientによるデータベース操作（98%カバレッジ）
+- Celery並列処理タスク実装（97%カバレッジ）
+- 統合テスト43件全通過
+- テストカバレッジ: 66% → 83% (+17%向上)
 
----
+### 🔵 Phase 4: マルチデータベース展開（計画中）
+MySQL、Redis、Elasticsearch、SQL Serverへの対応を追加し、クロスDB整合性チェック機能を実装予定。
 
-### 🌐 Phase 3: 本格展開 - Neo4Jグラフデータベース統合（計画中）
-**期間**: 2025年11月25日 - 2026年1月3日
-**ステータス**: 🔵 **計画中**
-
-**目標**: 真の核心機能の実装
-
-#### Week 5-6: Neo4Jグラフデータベース統合
-**Neo4Jスキーマ設計**:
-- **ノードタイプ**: FileNode, ClassNode, MethodNode, CQLQueryNode, TableNode, IssueNode
-- **リレーションシップ**: CONTAINS, DEFINES, EXECUTES, ACCESSES, HAS_ISSUE, REFERENCES
-
-**影響範囲分析**:
-- ファイル変更の影響分析
-- 依存関係トレース
-- リスク評価
-
-#### Week 7-8: 並列処理とダッシュボード
-**Celery並列処理基盤**:
-- 35,000ファイルを2時間以内に処理
-- RabbitMQブローカー + Redisバックエンド
-
-**FastAPI実装**:
-- REST APIエンドポイント
-  - `POST /analyze` - 分析実行
-  - `GET /issues` - 問題一覧取得
-  - `GET /impact/{table}` - 影響範囲分析
-  - `GET /graph` - グラフデータ取得
-
-**Reactダッシュボード**:
-- D3.jsによるグラフ可視化
-- インタラクティブな探索機能
-- 問題一覧・フィルタリング
-
-#### Week 9-10: CI/CD統合と本番運用
-**GitHub Actions ワークフロー**:
-- プルリクエストでの自動分析
-- Slack/メール通知
-
-**Docker Compose構成**:
-- Neo4j, RabbitMQ, Redis, Celery Worker (x8), FastAPI, Nginx
-- Prometheus/Grafana監視
-
-**ディレクトリ**: `phase3_neo4j/`（準備中）
-
-**主要タスク**:
-- Task 12.1: Neo4jスキーマ設計
-- Task 12.2: Neo4jクライアント実装
-- Task 12.3: 影響範囲分析
-- Task 13.1: Celery並列処理基盤
-- Task 13.2: FastAPI実装
-- Task 13.3: Reactダッシュボード
-- Task 14.1: CI/CD統合
-- Task 14.3: 本番環境構築
-
----
-
-### 🗄️ Phase 4: 他データベース展開（計画中）
-**期間**: 2026年1月6日 - 2月14日
-**ステータス**: 🔵 **計画中**
-
-**目標**: 全データベース対応完了
-
-**対応データベース**:
-1. **MySQL**（Week 11-12）
-   - N+1問題検出
-   - フルテーブルスキャン検出
-   - トランザクション漏れ
-   - デッドロックリスク
-
-2. **Redis**（Week 13-14）
-   - キャッシュ整合性チェック
-   - TTL設定検証
-   - メモリ使用量推定
-
-3. **Elasticsearch**（Week 13-14）
-   - クエリDSL解析
-   - インデックス設計評価
-   - シャード設定検証
-
-4. **SQL Server**（Week 15-16）
-   - T-SQL解析
-   - ストアドプロシージャ分析
-   - トランザクション分離レベル
-
-**ディレクトリ**: `phase4_multidb/`（準備中）
+**計画ドキュメント**: 📖 [`phase4_multidb/README.md`](./phase4_multidb/README.md)
 
 ---
 
 ## 🚀 クイックスタート
 
-### Phase 1（Cassandraアナライザー）を試す
-
 ```bash
-# Phase 1ディレクトリに移動
-cd phase1_cassandra/
+# リポジトリのクローン
+git clone https://github.com/your-org/4j-claude.git
+cd 4j-claude
 
-# 仮想環境の作成とアクティベート
+# Phase 1 & 2の基本使用
+cd phase1_cassandra/
 python -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# 依存パッケージのインストール
 pip install -r requirements.txt
 pip install -e .
 
-# 分析実行
-cassandra-analyzer analyze /path/to/your/java/project \
-    --output reports/analysis_report.html \
-    --config config.yaml
+# Cassandra分析実行（静的解析のみ）
+cassandra-analyzer analyze /path/to/java/project --output report.html
 
-# テスト実行
-pytest tests/ -v --cov
+# LLM統合分析（Phase 2機能）
+cassandra-analyzer analyze /path/to/java/project \
+    --enable-llm \
+    --api-key $ANTHROPIC_API_KEY \
+    --mode comprehensive
 ```
 
-詳細は [`phase1_cassandra/README_CASSANDRA.md`](./phase1_cassandra/README_CASSANDRA.md) を参照してください。
+**詳細な使用方法**:
+- Phase 1機能: [`phase1_cassandra/README_CASSANDRA.md`](./phase1_cassandra/README_CASSANDRA.md)
+- Phase 2機能: [`phase2_llm/README.md`](./phase2_llm/README.md)
 
 ---
 
 ## 📊 プロジェクト進捗
 
 ```
-全体進捗: [██████████░░░░░░░░░░] 50% (Phase 1&2完了)
+全体進捗: [███████████████░░░░░] 75% (Phase 1-3完了)
 
-Phase 1: [████████████████████] 100% (完了)
-Phase 2: [████████████████████] 100% (完了)
-Phase 3: [░░░░░░░░░░░░░░░░░░░░]   0% (計画中)
-Phase 4: [░░░░░░░░░░░░░░░░░░░░]   0% (計画中)
+Phase 1: [████████████████████] 100% ✅ 静的解析
+Phase 2: [████████████████████] 100% ✅ LLM統合
+Phase 3: [████████████████████] 100% ✅ Neo4j/Celery
+Phase 4: [░░░░░░░░░░░░░░░░░░░░]   0% 🔵 計画中
 ```
 
 ---
@@ -206,141 +102,87 @@ Phase 4: [░░░░░░░░░░░░░░░░░░░░]   0% (�
 ## 🏗️ プロジェクト構造
 
 ```
-4J_Claude/
-├── phase1_cassandra/          ✅ Phase 1: Cassandra特化型分析（完了）
-│   ├── src/cassandra_analyzer/
-│   │   ├── models/           # データモデル
-│   │   ├── parsers/          # JavaParser, CQLParser, ASTParser
-│   │   ├── detectors/        # 4つの問題検出器
-│   │   ├── reporters/        # HTML/JSON/Markdownレポーター
-│   │   ├── utils/            # ユーティリティ
-│   │   └── main.py           # CLIエントリーポイント
-│   ├── tests/                # 284テスト（95.34%カバレッジ）
-│   ├── docs/                 # ドキュメント
-│   └── README_CASSANDRA.md   # Phase 1詳細
-│
-├── phase2_llm/               ✅ Phase 2: LLM統合（完了）
-│   ├── src/
-│   │   ├── models.py         # AnalysisConfidence, HybridAnalysisResult
-│   │   ├── llm_client.py     # AnthropicClient実装
-│   │   ├── llm_analyzer.py   # LLMAnalyzer実装
-│   │   └── hybrid_engine.py  # HybridAnalysisEngine実装
-│   ├── tests/                # ユニットテスト（63テスト、90%カバレッジ）
-│   ├── README.md             # Phase 2詳細ドキュメント
-│   └── ARCHITECTURE.md       # Phase 2アーキテクチャ図
-│
-├── phase3_neo4j/             🔵 Phase 3: Neo4Jグラフデータベース（計画中）
-│   ├── src/
-│   │   ├── graph/            # Neo4jクライアント
-│   │   ├── analyzers/        # 影響範囲分析
-│   │   ├── api/              # FastAPI
-│   │   └── worker/           # Celery並列処理
-│   ├── dashboard/            # Reactダッシュボード
-│   └── README.md             # Phase 3計画
-│
-├── phase4_multidb/           🔵 Phase 4: 他DB展開（計画中）
-│   ├── parsers/
-│   │   ├── mysql_parser.py
-│   │   ├── redis_parser.py
-│   │   ├── elasticsearch_parser.py
-│   │   └── sqlserver_parser.py
-│   └── README.md             # Phase 4計画
-│
-├── docs/                     # プロジェクト全体ドキュメント
-│   ├── ARCHITECTURE.md       # アーキテクチャ設計
-│   ├── NEO4J_SCHEMA.md       # Neo4Jスキーマ設計
-│   └── API_SPEC.md           # API仕様書
-│
-├── README.md                 # このファイル（プロジェクト概要）
-└── TODO.md                   # 詳細タスク管理（2,253行）
+4j-claude/
+├── phase1_cassandra/         ✅ Cassandra特化型分析（完了）
+├── phase2_llm/               ✅ LLM統合（完了）
+├── phase3_neo4j/             ✅ グラフDB統合（完了）
+│   ├── src/graph_analyzer/
+│   │   ├── graph/           # Neo4j接続とグラフ構築
+│   │   ├── impact/          # 影響範囲分析
+│   │   └── tasks/           # Celery並列処理
+│   └── tests/               # 43統合テスト
+├── phase4_multidb/           🔵 マルチDB対応（計画中）
+├── README.md                 # プロジェクト概要（このファイル）
+└── TODO.md                   # タスク管理
 ```
+
+**詳細な構造は各フェーズのREADMEを参照**:
+- [`phase1_cassandra/README_CASSANDRA.md`](./phase1_cassandra/README_CASSANDRA.md#ディレクトリ構造)
+- [`phase2_llm/README.md`](./phase2_llm/README.md#ディレクトリ構造)
+- [`phase3_neo4j/README.md`](./phase3_neo4j/README.md#ディレクトリ構造予定)
+- [`phase4_multidb/README.md`](./phase4_multidb/README.md#ディレクトリ構造予定)
 
 ---
 
 ## 📈 成功指標
 
-### Phase 1（達成済み）
-- ✅ テストカバレッジ > 95%（達成: 95.34%）
-- ✅ 284テスト全成功
-- ✅ 4種類の問題検出器実装完了
-- ✅ HTML/JSON/Markdownレポート生成
-
-### Phase 2（達成済み）
-- ✅ LLM統合が動作（HybridAnalysisEngine完了）
-- ✅ 自動修正提案が有用（3つのLLM独自問題検出）
-- ✅ LLM精度 > 85%（信頼度0.92-0.97達成）
-- ✅ コスト管理が機能（$0.05-0.10/実行）
-
-### Phase 3（目標）
-- [ ] Neo4jグラフDB構築完了
-- [ ] 並列処理で2時間以内に35,000ファイル分析
-- [ ] Reactダッシュボードが稼働
-- [ ] CI/CD統合完了
-
-### Phase 4（目標）
-- [ ] 5種DB全対応
-- [ ] クロスDB整合性チェック機能
-- [ ] 統合E2Eテスト成功
-- [ ] 全DB問題検出率 > 80%
+| Phase | ステータス | 主要指標 |
+|-------|-----------|----------|
+| **Phase 1** | ✅ 完了 | テストカバレッジ 95.34%、284テスト成功 |
+| **Phase 2** | ✅ 完了 | LLM精度 92-97%、コスト $0.05-0.10/実行 |
+| **Phase 3** | ✅ 完了 | カバレッジ 83%、統合テスト43件、GraphBuilder 100%、Neo4jClient 98%、Celeryタスク 97% |
+| **Phase 4** | 🔵 計画中 | 5種DB対応、検出率 >80%（目標） |
 
 ---
 
-## 💰 予算管理
+## 📚 ドキュメント構造
 
-| Phase | 期間 | LLMコスト | インフラコスト | 月間合計 |
-|-------|------|-----------|----------------|----------|
-| Phase 1 | 2週間 | - | - | - |
-| Phase 2 | 2週間 | $315/月 | $100/月 | $415/月 |
-| Phase 3 | 6週間 | $315/月 | $670/月 | $985/月 |
-| Phase 4 | 6週間 | $315/月 | $670/月 | $985/月 |
+### プロジェクト全体
+- **このREADME** - プロジェクト概要とナビゲーション
+- [`TODO.md`](./TODO.md) - 全フェーズの詳細タスク管理
+- [`DETAILED_DESIGN.md`](./DETAILED_DESIGN.md) - 技術アーキテクチャ詳細
+- [`IMPLEMENTATION_SPEC.md`](./IMPLEMENTATION_SPEC.md) - 実装仕様
 
----
-
-## 🤝 開発ガイド
-
-### Phase 1の開発継続
-Phase 1のバグ修正や機能追加は `phase1_cassandra/` で作業してください。
-
-### Phase 2以降の開発開始
-各フェーズのディレクトリ内でREADME.mdを作成し、TODO.mdを参照して実装してください。
-
-### テスト実行
-```bash
-# Phase 1のテスト
-cd phase1_cassandra/
-pytest tests/ -v --cov
-
-# 将来: Phase 3のテスト
-cd phase3_neo4j/
-pytest tests/ -v --cov
-```
-
----
-
-## 📝 詳細ドキュメント
-
-- **Phase 1詳細**: [`phase1_cassandra/README_CASSANDRA.md`](./phase1_cassandra/README_CASSANDRA.md)
-- **使用方法**: [`phase1_cassandra/USAGE.md`](./phase1_cassandra/USAGE.md)
-- **開発ガイド**: [`phase1_cassandra/DEVELOPMENT.md`](./phase1_cassandra/DEVELOPMENT.md)
-- **タスク管理**: [`TODO.md`](../TODO.md)（2,253行の詳細計画）
+### 各フェーズ詳細
+- **Phase 1**: [`phase1_cassandra/README_CASSANDRA.md`](./phase1_cassandra/README_CASSANDRA.md)
+  - Cassandra分析の詳細仕様、使用方法、テスト結果
+- **Phase 2**: [`phase2_llm/README.md`](./phase2_llm/README.md)
+  - LLM統合の実装詳細、4つの分析モード、コスト管理
+- **Phase 3**: [`phase3_neo4j/README.md`](./phase3_neo4j/README.md)
+  - Neo4J統合計画、スキーマ設計、並列処理アーキテクチャ
+- **Phase 4**: [`phase4_multidb/README.md`](./phase4_multidb/README.md)
+  - マルチDB対応計画、各DB固有の検出パターン
 
 ---
 
 ## 🎯 次のステップ
 
-1. **Phase 3の開始**（2025年1月28日開始予定）
-   - Neo4Jスキーマの詳細設計
-   - グラフデータベース構築
-   - 影響範囲分析エンジンの実装
-   - Reactダッシュボードのモックアップ作成
+**Phase 4開始予定**: 2025年2月1日 JST
 
-2. **Phase 4の調査**（2026年2月開始予定）
-   - MySQL/Redis/Elasticsearch/SQL Serverのパーサーライブラリ調査
-   - 各データベース固有の問題パターン定義
+1. MySQL/PostgreSQL検出パターン実装
+2. Redis/Elasticsearch対応追加
+3. クロスDB整合性チェック機能
+4. 統合ダッシュボード拡張
 
-3. **本番環境準備**
-   - Docker Compose構成の準備
-   - CI/CDパイプラインの設計
+詳細は[`phase4_multidb/README.md`](./phase4_multidb/README.md)を参照
+
+---
+
+## 🤝 開発ガイド
+
+### 環境セットアップ
+```bash
+# 基本セットアップ
+git clone https://github.com/your-org/4j-claude.git
+cd 4j-claude
+```
+
+### 各フェーズでの作業
+- **Phase 1/2の改善**: 該当ディレクトリ内で作業
+- **Phase 3/4の開発**: 計画ドキュメントを参照して開始
+
+### テスト実行
+各フェーズのディレクトリで `pytest tests/ -v --cov` を実行
 
 ---
 
@@ -356,12 +198,9 @@ MIT License
 
 ---
 
-**🚀 Generated with Claude Code by Anthropic**
-
----
-
-*最終更新: 2025年01月27日 15:30 JST*
-*バージョン: v2.0.0*
+*最終更新: 2025年01月27日 18:30 JST*
+*バージョン: v3.0.0*
 
 **更新履歴:**
-- v2.0.0 (2025年01月27日): Phase 2 LLM統合完了、HybridAnalysisEngine実装、4つの分析モード追加
+- v3.0.0 (2025年01月27日): Phase 3 Neo4j統合完了、テストカバレッジ83%達成
+- v2.0.0 (2025年01月27日): ドキュメント構造の整理と重複削除

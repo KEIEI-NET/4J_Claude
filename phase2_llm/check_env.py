@@ -15,8 +15,8 @@ if sys.platform == 'win32':
     import io
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-# .envファイルを読み込み
-env_path = Path(__file__).parent / ".env"
+# .envファイルを読み込み（ルートディレクトリから）
+env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
 print("🔍 環境変数設定確認")

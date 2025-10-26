@@ -1,16 +1,16 @@
 # Phase 2: LLM統合
 
 *バージョン: v2.0.0*
-*最終更新: 2025年01月27日 15:35 JST*
+*最終更新: 2025年01月27日 16:00 JST*
+
+[← プロジェクト全体に戻る](../README.md) | [Phase 1の基盤](../phase1_cassandra/README_CASSANDRA.md)
 
 **ステータス**: ✅ **完了**
-**期間**: 2025年11月11日 - 2025年1月27日
-**テストカバレッジ**: 90%
-**ユニットテスト**: 63/63 passing
+**テストカバレッジ**: 90%（63/63テスト成功）
 
 ## 🎯 概要
 
-Phase 2では、静的解析とLLM（Large Language Model）分析を統合したハイブリッド分析システムを実装しました。Anthropic Claude APIを使用して、静的解析では検出困難な問題を発見し、より高度な分析と修正提案を提供します。
+Phase 2では、Phase 1の静的解析基盤の上に、Anthropic Claude APIを統合したハイブリッド分析システムを構築しました。これにより、静的解析では検出困難な意味論的問題の発見と、より高度な修正提案が可能になりました。
 
 ## ✅ 実装完了機能
 
@@ -175,9 +175,10 @@ phase2_llm/
 
 ## 🚀 使用方法
 
-### インストール
+### セットアップ
 
 ```bash
+# Phase 1がインストール済みの前提
 cd phase2_llm/
 pip install -e .
 
@@ -188,50 +189,34 @@ echo "ANTHROPIC_API_KEY=your-api-key" > .env
 ### 基本的な使用例
 
 ```python
-import os
-from dotenv import load_dotenv
 from phase2_llm.src.hybrid_engine import HybridAnalysisEngine
 from phase2_llm.src.llm_client import AnthropicClient
 from phase1_cassandra.src.cassandra_analyzer.detectors import (
     AllowFilteringDetector,
-    PartitionKeyDetector
+    PartitionKeyDetector,
+    BatchSizeDetector,
+    PreparedStatementDetector
 )
 
-# 環境変数の読み込み
-load_dotenv()
-
-# Javaコードサンプル
-java_code = """
-public class UserDAO {
-    private Session session;
-
-    public List<User> findActiveUsers() {
-        String query = "SELECT * FROM users WHERE status = 'active' ALLOW FILTERING";
-        return session.execute(query).all();
-    }
-}
-"""
-
-# エンジンの初期化と実行
+# HybridAnalysisEngineの初期化
 engine = HybridAnalysisEngine(
     detectors=[
         AllowFilteringDetector(),
-        PartitionKeyDetector()
+        PartitionKeyDetector(),
+        BatchSizeDetector(),
+        PreparedStatementDetector()
     ],
     llm_client=AnthropicClient(),
-    api_key=os.getenv("ANTHROPIC_API_KEY")
+    api_key="your-api-key"
 )
 
-# 標準モードで分析
-result = engine.analyze(java_code, mode="standard")
+# 分析モードを選択して実行
+result = engine.analyze(java_code, mode="comprehensive")
 
-# 結果の表示
-print(f"検出された問題: {len(result.all_issues)}")
-for issue in result.all_issues:
-    print(f"- [{issue.severity}] {issue.type}: {issue.message}")
-    print(f"  信頼度: {result.confidence.overall_confidence:.2f}")
-    if issue.suggestion:
-        print(f"  提案: {issue.suggestion}")
+# 結果の確認
+print(f"静的解析: {len(result.static_issues)}件")
+print(f"LLM分析: {len(result.llm_issues)}件")
+print(f"総合信頼度: {result.confidence.overall_confidence:.2f}")
 ```
 
 ### 分析モードの選択ガイド
@@ -307,17 +292,24 @@ LLM_RATE_LIMIT=5
    - OpenAI GPT-4サポート
    - ローカルLLM統合
 
-## 📚 関連ドキュメント
+## 📚 Phase 2固有ドキュメント
 
-- [アーキテクチャ図](./ARCHITECTURE.md) - システム構成とデータフロー
-- [実装計画](./IMPLEMENTATION_PLAN.md) - 詳細な実装計画
-- [統合テスト結果](./LLM_INTEGRATION_TEST.md) - 実LLMテストの詳細
-- [Phase 1ドキュメント](../phase1_cassandra/README_CASSANDRA.md) - 静的解析の詳細
+| ドキュメント | 説明 |
+|-------------|------|
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | HybridAnalysisEngineのアーキテクチャ |
+| [IMPLEMENTATION_PLAN.md](./IMPLEMENTATION_PLAN.md) | 実装計画と設計決定 |
+| [LLM_INTEGRATION_TEST.md](./LLM_INTEGRATION_TEST.md) | 実LLM統合テスト結果 |
+
+## 🔗 関連フェーズ
+
+- **基盤**: [Phase 1 - Cassandra分析](../phase1_cassandra/README_CASSANDRA.md)
+- **次フェーズ**: [Phase 3 - Neo4J統合](../phase3_neo4j/README.md)（計画中）
+- **プロジェクト全体**: [ルートREADME](../README.md)
 
 ---
 
-*最終更新: 2025年01月27日 15:35 JST*
+*最終更新: 2025年01月27日 16:00 JST*
 *バージョン: v2.0.0*
 
 **更新履歴:**
-- v2.0.0 (2025年01月27日): Phase 2完了、全機能実装済み、テストカバレッジ90%達成
+- v2.0.0 (2025年01月27日): Phase 2固有の内容に特化、重複削除、ナビゲーション追加

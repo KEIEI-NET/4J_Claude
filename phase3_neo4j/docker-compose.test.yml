@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # RabbitMQ - Celery message broker (test environment)
+  rabbitmq-test:
+    image: rabbitmq:3.12-management
+    container_name: graph_analyzer_rabbitmq_test
+    ports:
+      - "5673:5672"    # AMQP port (different from production)
+      - "15673:15672"  # Management UI (different from production)
+    environment:
+      RABBITMQ_DEFAULT_USER: test
+      RABBITMQ_DEFAULT_PASS: test
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - test_network
+
+  # Redis - Celery result backend (test environment)
+  redis-test:
+    image: redis:7.2-alpine
+    container_name: graph_analyzer_redis_test
+    ports:
+      - "6380:6379"  # Different port from production
+    command: redis-server --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - test_network
+
+  # Neo4j - Graph database (test environment)
+  neo4j-test:
+    image: neo4j:5.15-community
+    container_name: graph_analyzer_neo4j_test
+    ports:
+      - "7475:7474"  # HTTP (different from production)
+      - "7688:7687"  # Bolt (different from production)
+    environment:
+      NEO4J_AUTH: neo4j/testpassword
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_apoc_export_file_enabled: 'true'
+      NEO4J_apoc_import_file_enabled: 'true'
+      NEO4J_dbms_security_procedures_unrestricted: apoc.*
+      NEO4J_dbms_memory_heap_initial__size: 256m
+      NEO4J_dbms_memory_heap_max__size: 512m
+      NEO4J_dbms_memory_pagecache_size: 256m
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:7474"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    networks:
+      - test_network
+
+  # Integration test runner
+  integration-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: graph_analyzer_integration_tests
+    environment:
+      CELERY_BROKER_URL: amqp://test:test@rabbitmq-test:5672//
+      CELERY_RESULT_BACKEND: redis://redis-test:6379/0
+      NEO4J_URI: bolt://neo4j-test:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: testpassword
+      PYTHONPATH: /app
+    volumes:
+      - .:/app
+    depends_on:
+      rabbitmq-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+      neo4j-test:
+        condition: service_healthy
+    networks:
+      - test_network
+    command: >
+      sh -c "
+        echo 'Waiting for services to be ready...' &&
+        sleep 5 &&
+        pytest tests/integration/ -v --tb=short
+      "
+
+networks:
+  test_network:
+    driver: bridge
