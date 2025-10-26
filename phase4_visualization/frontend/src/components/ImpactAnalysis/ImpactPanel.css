@@ -1,0 +1,36 @@
+.impact-panel {
+  padding: 16px;
+}
+
+.search-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.search-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.analysis-options {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.option-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.option-group label {
+  margin: 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.risk-card {
+  border: none;
+  box-shadow: none;
+}

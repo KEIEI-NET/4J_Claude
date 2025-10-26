@@ -1,12 +1,13 @@
 # 4J_Claude: 汎用ソースコード解析システム
 
-*バージョン: v3.0.0*
-*最終更新: 2025年01月27日 18:30 JST*
+*バージョン: v4.0.1*
+*最終更新: 2025年10月27日 08:07 JST*
 
 <p align="center">
   <img src="https://img.shields.io/badge/Status-Phase%201%20Completed-success" alt="Phase 1 Completed"/>
   <img src="https://img.shields.io/badge/Phase%202-Completed-success" alt="Phase 2 Completed"/>
   <img src="https://img.shields.io/badge/Phase%203-Completed-success" alt="Phase 3 Completed"/>
+  <img src="https://img.shields.io/badge/Phase%204-87.5%25-yellow" alt="Phase 4 In Progress"/>
   <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License"/>
   <img src="https://img.shields.io/badge/Python-3.11+-blue" alt="Python 3.11+"/>
   <img src="https://img.shields.io/badge/Coverage-83%25-brightgreen" alt="Test Coverage 83%"/>
@@ -49,10 +50,17 @@ Anthropic Claude APIを統合し、静的解析では検出困難な問題を発
 - 統合テスト43件全通過
 - テストカバレッジ: 66% → 83% (+17%向上)
 
-### 🔵 Phase 4: マルチデータベース展開（計画中）
-MySQL、Redis、Elasticsearch、SQL Serverへの対応を追加し、クロスDB整合性チェック機能を実装予定。
+### 🚧 Phase 4: 可視化と影響分析（Week 7-8 進行中 - 87.5%）
+Neo4jグラフデータを活用したインタラクティブな可視化システム。React + D3.jsによるWebダッシュボードと、FastAPIによる高速分析APIを実装。
 
-**計画ドキュメント**: 📖 [`phase4_multidb/README.md`](./phase4_multidb/README.md)
+**詳細ドキュメント**: 📖 [`phase4_visualization/README.md`](./phase4_visualization/README.md)
+**Week 7-8成果（統合作業）**:
+- ✅ 環境変数管理システム実装（Vite + pydantic-settings）
+- ✅ セキュアなCORS設定（開発/本番環境分離）
+- ✅ API統合テストスクリプト作成
+- ✅ FastAPI影響範囲分析API（<2秒レスポンス）
+- ✅ React + TypeScript + D3.js実装（67ユニットテスト、18 E2Eテスト）
+- ⏳ Docker化とCI/CDパイプライン構築（残タスク）
 
 ---
 
@@ -89,13 +97,19 @@ cassandra-analyzer analyze /path/to/java/project \
 ## 📊 プロジェクト進捗
 
 ```
-全体進捗: [███████████████░░░░░] 75% (Phase 1-3完了)
+全体進捗: [████████████████████] 97% (Phase 1-3完了, Phase 4 87.5%)
 
 Phase 1: [████████████████████] 100% ✅ 静的解析
 Phase 2: [████████████████████] 100% ✅ LLM統合
 Phase 3: [████████████████████] 100% ✅ Neo4j/Celery
-Phase 4: [░░░░░░░░░░░░░░░░░░░░]   0% 🔵 計画中
+Phase 4: [████████████████▓░░░]  87.5% 🚧 Week 7-8 統合中
 ```
+
+### Phase 4 進捗詳細（Week 7-8）
+- **Week 1-2**: ✅ バックエンドAPI実装（100%完了）
+- **Week 3-4**: ✅ フロントエンド基盤構築（100%完了）
+- **Week 5-6**: ✅ コア機能実装（100%完了）
+- **Week 7-8**: 🚧 統合作業（50%完了 - 5/10タスク）
 
 ---
 
@@ -111,9 +125,20 @@ Phase 4: [░░░░░░░░░░░░░░░░░░░░]   0% �
 │   │   ├── impact/          # 影響範囲分析
 │   │   └── tasks/           # Celery並列処理
 │   └── tests/               # 43統合テスト
-├── phase4_multidb/           🔵 マルチDB対応（計画中）
-├── README.md                 # プロジェクト概要（このファイル）
-└── TODO.md                   # タスク管理
+├── phase4_visualization/    🚧 可視化システム（Week 7-8）
+│   ├── backend/             # FastAPI バックエンド
+│   │   ├── api/            # REST APIエンドポイント
+│   │   ├── config/         # 環境変数設定（pydantic-settings）
+│   │   └── services/       # ビジネスロジック
+│   ├── frontend/           # React フロントエンド
+│   │   ├── src/
+│   │   │   ├── components/ # React + D3.jsコンポーネント
+│   │   │   ├── api/        # Axios APIクライアント
+│   │   │   └── stores/     # Zustand状態管理
+│   │   └── .env.*         # Vite環境変数
+│   └── scripts/           # 統合テストスクリプト
+├── README.md               # プロジェクト概要（このファイル）
+└── TODO.md                 # タスク管理
 ```
 
 **詳細な構造は各フェーズのREADMEを参照**:
@@ -131,7 +156,7 @@ Phase 4: [░░░░░░░░░░░░░░░░░░░░]   0% �
 | **Phase 1** | ✅ 完了 | テストカバレッジ 95.34%、284テスト成功 |
 | **Phase 2** | ✅ 完了 | LLM精度 92-97%、コスト $0.05-0.10/実行 |
 | **Phase 3** | ✅ 完了 | カバレッジ 83%、統合テスト43件、GraphBuilder 100%、Neo4jClient 98%、Celeryタスク 97% |
-| **Phase 4** | 🔵 計画中 | 5種DB対応、検出率 >80%（目標） |
+| **Phase 4** | 🚧 87.5% | Vitestテスト67件、Playwrightテスト18件、API応答<2秒、環境変数管理実装 |
 
 ---
 
@@ -155,34 +180,71 @@ Phase 4: [░░░░░░░░░░░░░░░░░░░░]   0% �
 
 ---
 
-## 🎯 次のステップ
+## 🎯 次のステップ（Phase 4 Week 8 残タスク）
 
-**Phase 4開始予定**: 2025年2月1日 JST
+**Week 8 完了予定**: 2025年11月3日 JST
 
-1. MySQL/PostgreSQL検出パターン実装
-2. Redis/Elasticsearch対応追加
-3. クロスDB整合性チェック機能
-4. 統合ダッシュボード拡張
+### 即座に実施予定
+1. 🔜 E2Eテスト実行（Neo4j実データ使用）
+2. 🔜 Viteビルド最適化とCode splitting
+3. 🔜 Docker化（Dockerfile + docker-compose.yml）
+4. 🔜 GitHub Actions CI/CD設定
+5. 🔜 運用ガイドとAPI仕様書作成
 
-詳細は[`phase4_multidb/README.md`](./phase4_multidb/README.md)を参照
+### 環境変数設定（新規実装済み）
+
+**開発環境セットアップ**:
+```bash
+# フロントエンド
+cd phase4_visualization/frontend
+cp .env.example .env.development
+npm install
+npm run dev  # http://localhost:5173
+
+# バックエンド
+cd phase4_visualization/backend
+cp .env.example .env.development
+pip install -r requirements.txt
+python -m uvicorn api.main:app --reload  # http://localhost:8000
+```
+
+詳細は[`phase4_visualization/WEEK7_8_INTEGRATION_REPORT.md`](./phase4_visualization/WEEK7_8_INTEGRATION_REPORT.md)を参照
 
 ---
 
 ## 🤝 開発ガイド
 
-### 環境セットアップ
+### 🔧 環境セットアップ
 ```bash
 # 基本セットアップ
 git clone https://github.com/your-org/4j-claude.git
 cd 4j-claude
 ```
 
-### 各フェーズでの作業
-- **Phase 1/2の改善**: 該当ディレクトリ内で作業
-- **Phase 3/4の開発**: 計画ドキュメントを参照して開始
+### 🌐 Phase 4 統合環境（Week 7-8実装済み）
 
-### テスト実行
-各フェーズのディレクトリで `pytest tests/ -v --cov` を実行
+#### セキュリティ設定
+- **開発環境**: `.env.development` - ローカル開発用設定
+- **本番環境**: `.env.production` - 本番デプロイ用設定
+- **重要**: `.env`ファイルは`.gitignore`に登録済み（機密情報保護）
+
+#### 環境変数管理
+- **フロントエンド**: Vite環境変数（`import.meta.env`）
+- **バックエンド**: pydantic-settings（型安全な設定管理）
+- **CORS設定**: 環境に応じた自動切り替え
+
+### 📋 テスト実行
+```bash
+# Phase 4 フロントエンドテスト
+cd phase4_visualization/frontend
+npm run test          # Vitest ユニットテスト（67件）
+npm run test:e2e      # Playwright E2Eテスト（18件）
+
+# Phase 4 API統合テスト
+cd phase4_visualization
+python scripts/test_api_integration.py  # Python統合テスト
+bash scripts/test_api_quick.sh         # Bash簡易テスト
+```
 
 ---
 
@@ -198,9 +260,11 @@ MIT License
 
 ---
 
-*最終更新: 2025年01月27日 18:30 JST*
-*バージョン: v3.0.0*
+*最終更新: 2025年10月27日 08:07 JST*
+*バージョン: v4.0.1*
 
 **更新履歴:**
+- v4.0.1 (2025年10月27日): Phase 4 Week 7-8 統合作業のドキュメント更新
+- v4.0.0 (2025年10月27日): Phase 4 可視化システム開始、環境変数管理実装
 - v3.0.0 (2025年01月27日): Phase 3 Neo4j統合完了、テストカバレッジ83%達成
 - v2.0.0 (2025年01月27日): ドキュメント構造の整理と重複削除

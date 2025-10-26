@@ -1,9 +1,15 @@
-# 4J_Claude プロジェクトドキュメント索引
+# 📚 4J_Claude プロジェクトドキュメント索引
 
-*バージョン: v3.0.0*
-*最終更新: 2025年01月27日 18:30 JST*
+*バージョン: v4.0.0*
+*最終更新: 2025年10月27日 08:25 JST*
 
 このドキュメントは、4J_Claudeプロジェクトの全てのドキュメントへのナビゲーションガイドです。
+
+## 🔥 最新更新（Phase 4 Week 7-8）
+- **統合作業完了**: 環境変数管理システム実装
+- **セキュリティ強化**: CORS設定の環境別分離
+- **テスト拡充**: API統合テストスクリプト追加
+- **進捗**: Phase 4 87.5%完了（Week 1-7完了、Week 8進行中）
 
 ## 📚 プロジェクト全体ドキュメント
 
@@ -92,15 +98,33 @@
 4. **tasks.py** - Celery並列処理タスク
 5. **celery_app.py** - Celery設定管理
 
-## 📁 Phase 4: マルチDB対応（計画中）
+## 📁 Phase 4: 可視化システム（Week 7-8進行中 - 87.5%）
 
-**ディレクトリ**: `phase4_multidb/`
+**ディレクトリ**: `phase4_visualization/`
 
-### 対応予定データベース
-1. MySQL - N+1問題、フルテーブルスキャン検出
-2. Redis - キャッシュ整合性、TTL検証
-3. Elasticsearch - クエリDSL解析、インデックス評価
-4. SQL Server - T-SQL解析、ストアドプロシージャ分析
+### 主要ドキュメント
+- **[README.md](./phase4_visualization/README.md)** - Phase 4詳細説明（v4.7.8）
+- **[WEEK1_2_COMPLETION_REPORT.md](./phase4_visualization/WEEK1_2_COMPLETION_REPORT.md)** - バックエンドAPI実装
+- **[WEEK3_4_COMPLETION_REPORT.md](./phase4_visualization/WEEK3_4_COMPLETION_REPORT.md)** - フロントエンド基盤
+- **[WEEK5_6_COMPLETION_REPORT.md](./phase4_visualization/WEEK5_6_COMPLETION_REPORT.md)** - コア機能実装
+- **[WEEK7_8_INTEGRATION_REPORT.md](./phase4_visualization/WEEK7_8_INTEGRATION_REPORT.md)** - 統合作業（最新）
+
+### 成果物（Week 7-8時点）
+- ✅ FastAPIバックエンドAPI（6エンドポイント）
+- ✅ React + TypeScript + D3.js フロントエンド
+- ✅ 環境変数管理（Vite + pydantic-settings）
+- ✅ CORS設定最適化（開発/本番環境分離）
+- ✅ Vitestユニットテスト67件
+- ✅ Playwright E2Eテスト18件
+- ✅ API統合テストスクリプト5件
+- ⏳ Docker化とCI/CD（Week 8予定）
+
+### 主要コンポーネント
+1. **backend/api/main.py** - FastAPIメインアプリ
+2. **backend/config/settings.py** - 環境変数管理
+3. **frontend/src/api/client.ts** - APIクライアント
+4. **frontend/src/components/GraphView** - D3.jsグラフ
+5. **scripts/test_api_integration.py** - 統合テスト
 
 ## 🔍 ドキュメント検索ガイド
 
@@ -109,11 +133,14 @@
 | 目的 | 参照ドキュメント |
 |------|------------------|
 | プロジェクト全体を理解したい | [README.md](./README.md) |
+| **Phase 4の最新状況を知りたい** | **[Phase 4 README.md](./phase4_visualization/README.md)** |
+| **環境変数設定方法を知りたい** | **[Phase 4 Week 7-8レポート](./phase4_visualization/WEEK7_8_INTEGRATION_REPORT.md)** |
 | Phase 1の使い方を知りたい | [USAGE.md](./phase1_cassandra/USAGE.md) |
 | Phase 2のアーキテクチャを理解したい | [ARCHITECTURE.md](./phase2_llm/ARCHITECTURE.md) |
 | LLM統合の詳細を知りたい | [Phase 2 README.md](./phase2_llm/README_LLM.md) |
 | Phase 3のグラフDB統合を知りたい | [Phase 3 README.md](./phase3_neo4j/README.md) |
 | Celery並列処理の詳細を知りたい | [README_CELERY.md](./phase3_neo4j/README_CELERY.md) |
+| API統合テストを実行したい | [test_api_integration.py](./phase4_visualization/scripts/test_api_integration.py) |
 | 変更履歴を確認したい | [CHANGELOG.md](./CHANGELOG.md) |
 | タスクの詳細を見たい | [TODO.md](./TODO.md) |
 | 開発に参加したい | [DEVELOPMENT.md](./phase1_cassandra/DEVELOPMENT.md) |
@@ -143,13 +170,19 @@
 ## 📈 プロジェクト進捗サマリー
 
 ```
-全体進捗: [███████████████░░░░░] 75%
+全体進捗: [████████████████████] 97%
 
 ✅ Phase 1: Cassandra分析    100% 完了 (カバレッジ 95.34%)
 ✅ Phase 2: LLM統合          100% 完了 (カバレッジ 90%)
 ✅ Phase 3: Neo4j統合        100% 完了 (カバレッジ 83%)
-🔵 Phase 4: マルチDB対応       0% 計画中
+🚧 Phase 4: 可視化システム   87.5% 進行中 (Week 7-8統合作業)
 ```
+
+### Phase 4 Week別進捗
+- **Week 1-2**: ✅ バックエンドAPI実装（100%）
+- **Week 3-4**: ✅ フロントエンド基盤（100%）
+- **Week 5-6**: ✅ コア機能実装（100%）
+- **Week 7-8**: 🚧 統合作業（50% - 5/10タスク完了）
 
 ## 🔄 更新方針
 
@@ -186,10 +219,48 @@
 
 ---
 
-*最終更新: 2025年01月27日 18:30 JST*
-*バージョン: v3.0.0*
+## 🚀 クイックスタートガイド（Phase 4）
+
+### 環境構築手順
+```bash
+# 1. フロントエンド環境構築
+cd phase4_visualization/frontend
+cp .env.example .env.development
+npm install
+
+# 2. バックエンド環境構築
+cd ../backend
+cp .env.example .env.development
+pip install -r requirements.txt
+
+# 3. 開発サーバー起動
+# Terminal 1 (Backend)
+python -m uvicorn api.main:app --reload
+
+# Terminal 2 (Frontend)
+cd ../frontend
+npm run dev
+```
+
+### テスト実行
+```bash
+# API統合テスト
+cd phase4_visualization
+python scripts/test_api_integration.py
+
+# フロントエンドテスト
+cd frontend
+npm run test          # Vitest（67件）
+npm run test:e2e      # Playwright（18件）
+```
+
+---
+
+*最終更新: 2025年10月27日 08:25 JST*
+*バージョン: v4.0.0*
 
 **更新履歴:**
+- v4.0.0 (2025年10月27日): Phase 4 Week 7-8統合作業反映、環境変数管理追加、進捗97%に更新
 - v3.0.0 (2025年01月27日): Phase 3完了状態を反映、Neo4j統合ドキュメント追加、進捗75%に更新
-- v2.0.0 (2025年01月27日): プロジェクト構造変更に伴う全パス修正（cassandra-analyzer削除、各フェーズをルート直下に配置）
-- v1.0.0 (2025年01月27日): ドキュメント索引初版作成、Phase 1&2完了状態を反映
+- v2.0.0 (2025年01月27日): プロジェクト構造変更に伴う全パス修正
+- v1.0.0 (2025年01月27日): ドキュメント索引初版作成

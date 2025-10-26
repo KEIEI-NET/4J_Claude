@@ -1,0 +1,73 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multidb-analyzer"
+version = "4.0.0"
+description = "Multi-Database Analysis Framework for detecting N+1 queries, transaction issues, and cross-DB consistency problems"
+authors = [{name = "4J_Claude Team", email = "noreply@example.com"}]
+readme = "README.md"
+requires-python = ">=3.11"
+keywords = ["database", "analysis", "n-plus-one", "transactions", "cache", "neo4j"]
+license = {text = "MIT"}
+
+dependencies = [
+    "sqlparse>=0.4.4",
+    "redis>=5.0.0",
+    "elasticsearch>=8.11.0",
+    "neo4j>=5.14.0",
+    "javalang>=0.13.0",
+    "pydantic>=2.5.0",
+    "fastapi>=0.109.0",
+    "uvicorn>=0.27.0",
+    "celery>=5.3.4",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.3",
+    "pytest-cov>=4.1.0",
+    "pytest-asyncio>=0.23.2",
+    "pytest-mock>=3.12.0",
+    "mypy>=1.8.0",
+    "ruff>=0.1.11",
+    "black>=23.12.1",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["multidb_analyzer*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = "-v --strict-markers --cov=src/multidb_analyzer --cov-report=term-missing --cov-report=html"
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow tests",
+]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "W", "I", "N", "UP"]
+ignore = ["E501"]

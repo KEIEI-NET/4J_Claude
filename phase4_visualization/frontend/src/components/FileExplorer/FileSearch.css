@@ -1,0 +1,87 @@
+.file-search {
+  padding: 16px;
+}
+
+.search-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.recent-searches {
+  margin-top: 16px;
+}
+
+.recent-title {
+  font-size: 12px;
+  color: #999;
+  margin-bottom: 8px;
+}
+
+.recent-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.search-results {
+  margin-top: 16px;
+}
+
+.file-item {
+  cursor: pointer;
+  transition: background-color 0.2s;
+  padding: 12px;
+  border-radius: 4px;
+}
+
+.file-item:hover {
+  background-color: #f5f5f5;
+}
+
+.file-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-description {
+  display: flex;
+  align-items: center;
+  color: #666;
+  font-size: 12px;
+}
+
+.file-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-stats {
+  display: flex;
+  gap: 8px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: #1890ff;
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #666;
+}

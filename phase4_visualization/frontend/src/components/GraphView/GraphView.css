@@ -1,0 +1,29 @@
+.graph-view-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.link {
+  transition: stroke-opacity 0.2s;
+}
+
+.link:hover {
+  stroke-opacity: 1 !important;
+}
+
+.node {
+  transition: all 0.3s;
+}
+
+.node:hover {
+  stroke: #000;
+  stroke-width: 3px;
+  filter: brightness(1.2);
+}
+
+.label {
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+}
