@@ -25,13 +25,17 @@ else:
     # 実行時は__init__.pyから取得
     from ..models import Issue
 
-from cassandra_analyzer.parsers.java_parser import JavaCassandraParser
-from cassandra_analyzer.detectors.allow_filtering_detector import AllowFilteringDetector
-from cassandra_analyzer.detectors.partition_key_detector import PartitionKeyDetector
-from cassandra_analyzer.detectors.batch_size_detector import BatchSizeDetector
-from cassandra_analyzer.detectors.prepared_statement_detector import PreparedStatementDetector
-from cassandra_analyzer.llm.anthropic_client import AnthropicClient
-from cassandra_analyzer.llm.llm_analyzer import LLMAnalyzer
+# Phase 1のパーサー、検出器、LLMクライアントをインポート
+# 専用のインポートヘルパーを使用（名前空間の競合を回避）
+from .phase1_imports import (
+    JavaCassandraParser,
+    AllowFilteringDetector,
+    PartitionKeyDetector,
+    BatchSizeDetector,
+    PreparedStatementDetector,
+    AnthropicClient,
+    LLMAnalyzer,
+)
 
 from ..models.confidence import AnalysisConfidence
 from ..models.hybrid_result import HybridAnalysisResult
@@ -78,7 +82,7 @@ class HybridAnalysisEngine:
         self.enable_llm = enable_llm
         self.llm_threshold_severity = llm_threshold_severity
         self.anthropic_client = AnthropicClient(api_key=api_key) if enable_llm else None
-        self.llm_analyzer = LLMAnalyzer(api_key=api_key) if enable_llm else None
+        self.llm_analyzer = LLMAnalyzer(client=self.anthropic_client) if enable_llm else None
 
         self._severity_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 

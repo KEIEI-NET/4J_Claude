@@ -1,0 +1,2 @@
+[console_scripts]
+cassandra-analyzer = cassandra_analyzer.cli:main
