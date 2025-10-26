@@ -150,17 +150,18 @@ class HybridAnalysisEngine:
         Returns:
             List[Issue]: 検出された問題のリスト
         """
-        # ファイルを解析
-        parse_result = self.parser.parse_file(file_path)
-        if not parse_result:
-            logger.warning(f"Failed to parse {file_path}")
+        # ファイルを解析（List[CassandraCall]が返される）
+        cassandra_calls = self.parser.parse_file(file_path)
+        if not cassandra_calls:
+            logger.warning(f"No Cassandra calls found in {file_path}")
             return []
 
-        # 全検出器を実行
+        # 全検出器を各CassandraCallに対して実行
         all_issues: List[Issue] = []
-        for detector in self.detectors:
-            issues = detector.detect(parse_result)
-            all_issues.extend(issues)
+        for call in cassandra_calls:
+            for detector in self.detectors:
+                issues = detector.detect(call)
+                all_issues.extend(issues)
 
         return all_issues
 
@@ -227,6 +228,7 @@ class HybridAnalysisEngine:
             # LLM分析を実行
             response = await asyncio.to_thread(
                 self.anthropic_client.analyze_code,
+                code=code_content,
                 prompt=prompt,
                 max_tokens=2000
             )
@@ -349,6 +351,7 @@ class HybridAnalysisEngine:
             prompt = self._build_semantic_analysis_prompt(code_content, file_path)
             response = await asyncio.to_thread(
                 self.anthropic_client.analyze_code,
+                code=code_content,
                 prompt=prompt,
                 max_tokens=3000
             )
