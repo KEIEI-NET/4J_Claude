@@ -2,24 +2,22 @@
 Hybrid Analysis Result Model
 """
 
+from __future__ import annotations  # PEP 563: 型ヒントを文字列として扱う
+
 from dataclasses import dataclass, field
-from typing import Dict, Any, Optional, List
-import sys
-from pathlib import Path
+from typing import Dict, Any, Optional, List, TYPE_CHECKING
 
-# Phase 1のモジュールをインポートパスに追加（一度だけ）
-phase1_path = Path(__file__).parent.parent.parent.parent.parent / "phase1_cassandra" / "src"
-if str(phase1_path) not in sys.path:
-    sys.path.insert(0, str(phase1_path))
-
-# Phase 1からインポート（絶対インポート）
-try:
+# 型チェック時のみインポート
+if TYPE_CHECKING:
     from cassandra_analyzer.models.issue import Issue
-except ImportError:
-    # テスト環境ではconftest.pyでパスが設定されている
-    from cassandra_analyzer.models.issue import Issue  # type: ignore
 
 from .confidence import AnalysisConfidence
+
+# 実行時にIssueクラスを取得（循環インポートを避けるため）
+def _get_issue_class():
+    """Phase 1のIssueクラスを__init__.pyから取得"""
+    from . import Issue
+    return Issue
 
 
 @dataclass

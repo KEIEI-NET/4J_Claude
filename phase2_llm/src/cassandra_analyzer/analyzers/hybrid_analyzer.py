@@ -4,17 +4,27 @@ Hybrid Analysis Engine
 静的解析とLLM分析を統合するエンジン
 """
 
+from __future__ import annotations  # PEP 563: 型ヒントを文字列として扱う
+
 import sys
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, TYPE_CHECKING
 import asyncio
 import logging
 
 # Phase 1のモジュールをインポートパスに追加
 phase1_path = Path(__file__).parent.parent.parent.parent.parent / "phase1_cassandra" / "src"
-sys.path.insert(0, str(phase1_path))
+phase1_path_resolved = phase1_path.resolve()
+if phase1_path_resolved.exists() and str(phase1_path_resolved) not in sys.path:
+    sys.path.insert(0, str(phase1_path_resolved))
 
-from cassandra_analyzer.models.issue import Issue
+# Phase 1からのインポート
+if TYPE_CHECKING:
+    from cassandra_analyzer.models.issue import Issue
+else:
+    # 実行時は__init__.pyから取得
+    from ..models import Issue
+
 from cassandra_analyzer.parsers.java_parser import JavaCassandraParser
 from cassandra_analyzer.detectors.allow_filtering_detector import AllowFilteringDetector
 from cassandra_analyzer.detectors.partition_key_detector import PartitionKeyDetector

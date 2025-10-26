@@ -4,9 +4,8 @@ Tests for HybridAnalysisResult
 
 import pytest
 
-# conftest.pyでパス設定済み。直接インポート
-from cassandra_analyzer.models.issue import Issue
-from cassandra_analyzer.models.confidence import AnalysisConfidence
+# conftest.pyでパス設定済み。Phase 2のmodelsパッケージから直接インポート
+from cassandra_analyzer.models import Issue, AnalysisConfidence
 from cassandra_analyzer.models.hybrid_result import HybridAnalysisResult
 
 
