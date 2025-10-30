@@ -1,0 +1,3 @@
+"""
+Tests for MySQL Module
+"""

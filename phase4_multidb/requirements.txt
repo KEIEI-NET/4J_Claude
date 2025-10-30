@@ -1,0 +1,10 @@
+# Core dependencies for multidb-analyzer
+javalang==0.13.0
+sqlparse==0.4.4
+elasticsearch-dsl==8.11.0
+elasticsearch==8.11.1
+click==8.1.7
+rich==13.7.0
+
+# LLM Integration
+anthropic>=0.18.0
