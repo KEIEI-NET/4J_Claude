@@ -4,18 +4,17 @@ Unified Analyzer
 複数のDBタイプを統合分析するメインクラス
 """
 
-import asyncio
 import logging
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict, Optional, Any
 from time import time
 
-from multidb_analyzer.core.base_detector import Issue, Severity
+from multidb_analyzer.core.base_detector import Issue
 from multidb_analyzer.unified.analysis_result import AnalysisResult
 
 # Elasticsearchモジュール
-from multidb_analyzer.elasticsearch.parsers.java_client_parser import ElasticsearchJavaParser
+from multidb_analyzer.elasticsearch.parsers.java_client_parser import JavaClientParser
 from multidb_analyzer.elasticsearch.detectors.mapping_detector import MappingDetector
 from multidb_analyzer.elasticsearch.detectors.wildcard_detector import WildcardDetector
 from multidb_analyzer.elasticsearch.detectors.shard_detector import ShardDetector
@@ -27,9 +26,6 @@ from multidb_analyzer.mysql.detectors.nplus_one_detector import NPlusOneDetector
 from multidb_analyzer.mysql.detectors.full_table_scan_detector import FullTableScanDetector
 from multidb_analyzer.mysql.detectors.missing_index_detector import MissingIndexDetector
 from multidb_analyzer.mysql.detectors.join_performance_detector import JoinPerformanceDetector
-
-# LLMモジュール
-from multidb_analyzer.llm.llm_enhancer import LLMEnhancer, LLMConfig
 
 logger = logging.getLogger(__name__)
 
@@ -56,10 +52,6 @@ class UnifiedAnalyzer:
         enable_mysql: bool = True,
         enable_llm: bool = False,
         llm_api_key: Optional[str] = None,
-        llm_model: str = "claude-sonnet-3.5",
-        llm_min_severity: Severity = Severity.HIGH,
-        llm_batch_size: int = 5,
-        llm_rate_limit_rpm: int = 50,
         config: Optional[Dict[str, Any]] = None
     ):
         """
@@ -70,10 +62,6 @@ class UnifiedAnalyzer:
             enable_mysql: MySQL分析を有効化
             enable_llm: LLM最適化を有効化
             llm_api_key: Claude APIキー（LLM有効時必須）
-            llm_model: 使用するLLMモデル
-            llm_min_severity: LLM分析対象の最小重大度
-            llm_batch_size: LLMバッチサイズ
-            llm_rate_limit_rpm: LLMレート制限（RPM）
             config: カスタム設定辞書
         """
         self.enable_elasticsearch = enable_elasticsearch
@@ -84,7 +72,7 @@ class UnifiedAnalyzer:
 
         # Elasticsearchコンポーネント
         if self.enable_elasticsearch:
-            self.es_parser = ElasticsearchJavaParser()
+            self.es_parser = JavaClientParser()
             self.es_detectors = [
                 MappingDetector(),
                 WildcardDetector(),
@@ -92,9 +80,6 @@ class UnifiedAnalyzer:
                 ScriptQueryDetector(),
             ]
             logger.info("Elasticsearch analysis enabled with 4 detectors")
-        else:
-            self.es_parser = None
-            self.es_detectors = []
 
         # MySQLコンポーネント
         if self.enable_mysql:
@@ -106,29 +91,12 @@ class UnifiedAnalyzer:
                 JoinPerformanceDetector(),
             ]
             logger.info("MySQL analysis enabled with 4 detectors")
-        else:
-            self.mysql_parser = None
-            self.mysql_detectors = []
 
-        # LLMコンポーネント
-        self.llm_enhancer: Optional[LLMEnhancer] = None
+        # LLMコンポーネント（将来実装）
         if self.enable_llm:
             if not llm_api_key:
                 logger.warning("LLM enabled but no API key provided")
-            else:
-                llm_config = LLMConfig(
-                    api_key=llm_api_key,
-                    model=llm_model,
-                    min_severity=llm_min_severity,
-                    batch_size=llm_batch_size,
-                    rate_limit_rpm=llm_rate_limit_rpm,
-                )
-                self.llm_enhancer = LLMEnhancer(llm_config)
-                logger.info(
-                    f"LLM optimization enabled: {llm_model}, "
-                    f"min_severity={llm_min_severity.value}, "
-                    f"batch_size={llm_batch_size}"
-                )
+            logger.info("LLM optimization enabled")
 
     def analyze(
         self,
@@ -185,11 +153,9 @@ class UnifiedAnalyzer:
                 logger.info(f"MySQL: {len(mysql_issues)} issues in {mysql_analyzed} files")
 
             # LLM最適化
-            if self.enable_llm and self.llm_enhancer and all_issues:
+            if self.enable_llm and all_issues:
                 logger.info("Applying LLM optimization...")
-                all_issues, llm_errors = self._apply_llm_optimization(all_issues)
-                if llm_errors:
-                    errors.extend(llm_errors)
+                all_issues = self._apply_llm_optimization(all_issues)
 
         except Exception as e:
             error_msg = f"Analysis error: {str(e)}"
@@ -283,7 +249,7 @@ class UnifiedAnalyzer:
 
         for file_path in files:
             try:
-                queries = self.es_parser.parse_file(file_path)
+                queries = self.es_parser.parse(str(file_path))
                 if queries:
                     all_queries.extend(queries)
                     analyzed_count += 1
@@ -316,7 +282,7 @@ class UnifiedAnalyzer:
 
         for file_path in files:
             try:
-                queries = self.mysql_parser.parse_file(file_path)
+                queries = self.mysql_parser.parse(str(file_path))
                 if queries:
                     all_queries.extend(queries)
                     analyzed_count += 1
@@ -334,10 +300,7 @@ class UnifiedAnalyzer:
 
         return all_issues, analyzed_count
 
-    def _apply_llm_optimization(
-        self,
-        issues: List[Issue]
-    ) -> tuple[List[Issue], List[str]]:
+    def _apply_llm_optimization(self, issues: List[Issue]) -> List[Issue]:
         """
         LLM最適化を適用
 
@@ -345,30 +308,19 @@ class UnifiedAnalyzer:
             issues: 問題リスト
 
         Returns:
-            (最適化された問題リスト, エラーリスト)
+            最適化された問題リスト
         """
-        if not self.llm_enhancer:
-            logger.warning("LLM enhancer not initialized, skipping optimization")
-            return issues, []
+        if not self.llm_api_key:
+            logger.warning("LLM API key not provided, skipping optimization")
+            return issues
 
-        try:
-            # 非同期コンテキストで実行
-            loop = asyncio.get_event_loop()
-            enhanced_issues, errors = loop.run_until_complete(
-                self.llm_enhancer.enhance_issues(issues)
-            )
+        # TODO: LLM統合実装
+        # from multidb_analyzer.llm.llm_optimizer import LLMOptimizer
+        # optimizer = LLMOptimizer(api_key=self.llm_api_key)
+        # return optimizer.optimize_issues(issues)
 
-            logger.info(
-                f"LLM optimization complete: "
-                f"{len(enhanced_issues)} issues enhanced"
-            )
-
-            return enhanced_issues, errors
-
-        except Exception as e:
-            error_msg = f"LLM optimization failed: {str(e)}"
-            logger.error(error_msg, exc_info=True)
-            return issues, [error_msg]
+        logger.info("LLM optimization not yet implemented, returning original issues")
+        return issues
 
     def get_supported_databases(self) -> List[str]:
         """サポートするDBタイプのリストを取得"""
