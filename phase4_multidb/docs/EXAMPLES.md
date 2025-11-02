@@ -1,931 +1,886 @@
-# サンプルコード集
+# MultiDB Analyzer - Code Examples
 
-**バージョン**: v1.0.0
-**最終更新**: 2025年01月27日
+**Version:** 1.0.0
+**Last Updated:** 2025-11-03
 
-## 目次
+## Table of Contents
 
-1. [基本的な使い方](#基本的な使い方)
-2. [カスタム検出器の作成](#カスタム検出器の作成)
-3. [LLM統合の実践例](#llm統合の実践例)
-4. [レポート生成](#レポート生成)
-5. [CI/CD統合](#cicd統合)
-6. [高度な使用例](#高度な使用例)
+- [Basic Usage](#basic-usage)
+- [Configuration Examples](#configuration-examples)
+- [Programmatic API](#programmatic-api)
+- [Custom Detectors](#custom-detectors)
+- [Reporting](#reporting)
+- [CI/CD Scripts](#cicd-scripts)
+- [Advanced Use Cases](#advanced-use-cases)
 
 ---
 
-## 基本的な使い方
+## Basic Usage
 
-### 例1: シンプルな分析
+### Example 1: Simple Analysis
 
-```python
-"""
-最もシンプルな分析例
-"""
-from multidb_analyzer.elasticsearch.parsers import JavaElasticsearchParser
-from multidb_analyzer.elasticsearch.detectors import (
-    WildcardDetector,
-    NPlusOneDetector,
-    LargeSizeDetector
-)
-from multidb_analyzer.core.base_detector import AnalysisContext
+```bash
+# Analyze current directory
+multidb-analyzer analyze .
 
-# Javaファイルを読み込み
-with open('SearchService.java', 'r', encoding='utf-8') as f:
-    code = f.read()
+# Analyze specific directory
+multidb-analyzer analyze ./src
 
-# パーサーでクエリを抽出
-parser = JavaElasticsearchParser()
-queries = parser.parse_file('SearchService.java', code)
-
-print(f"Found {len(queries)} queries")
-
-# 検出器を実行
-context = AnalysisContext(
-    file_path='SearchService.java',
-    code_content=code
-)
-
-detectors = [
-    WildcardDetector(),
-    NPlusOneDetector(),
-    LargeSizeDetector()
-]
-
-all_issues = []
-for detector in detectors:
-    issues = detector.detect(queries, context)
-    all_issues.extend(issues)
-    print(f"{detector.__class__.__name__}: {len(issues)} issues")
-
-# 結果を表示
-for issue in all_issues:
-    print(f"\n{issue.severity.value}: {issue.title}")
-    print(f"  File: {issue.file_path}:{issue.line_number}")
-    print(f"  Description: {issue.description}")
-    print(f"  Suggestion: {issue.suggestion}")
+# Analyze multiple directories
+multidb-analyzer analyze ./backend ./frontend ./shared
 ```
 
-### 例2: ディレクトリ全体を分析
+### Example 2: Database-Specific Analysis
 
-```python
-"""
-プロジェクト全体を分析する例
-"""
-from pathlib import Path
-from multidb_analyzer.elasticsearch.parsers import JavaElasticsearchParser
-from multidb_analyzer.elasticsearch.detectors import get_all_detectors
-from multidb_analyzer.core.base_detector import AnalysisContext
+```bash
+# Elasticsearch only
+multidb-analyzer analyze ./src --db elasticsearch
 
-def analyze_project(project_dir: str):
-    """プロジェクト内の全Javaファイルを分析"""
-    parser = JavaElasticsearchParser()
-    detectors = get_all_detectors()
+# MySQL only
+multidb-analyzer analyze ./src --db mysql
 
-    all_issues = []
-
-    # 全Javaファイルを検索
-    project_path = Path(project_dir)
-    java_files = list(project_path.rglob('*.java'))
-
-    print(f"Analyzing {len(java_files)} Java files...")
-
-    for java_file in java_files:
-        try:
-            with open(java_file, 'r', encoding='utf-8') as f:
-                code = f.read()
-
-            # クエリを抽出
-            queries = parser.parse_file(str(java_file), code)
-
-            if not queries:
-                continue
-
-            # 検出器を実行
-            context = AnalysisContext(
-                file_path=str(java_file),
-                code_content=code
-            )
-
-            for detector in detectors:
-                issues = detector.detect(queries, context)
-                all_issues.extend(issues)
-
-        except Exception as e:
-            print(f"Error analyzing {java_file}: {e}")
-            continue
-
-    return all_issues
-
-# 実行
-if __name__ == '__main__':
-    issues = analyze_project('/path/to/project/src')
-
-    # 重大度別に集計
-    from collections import Counter
-    severity_counts = Counter(issue.severity.value for issue in issues)
-
-    print("\n=== Analysis Summary ===")
-    for severity, count in severity_counts.most_common():
-        print(f"{severity}: {count} issues")
+# Both databases
+multidb-analyzer analyze ./src --db all
 ```
 
-### 例3: 設定ファイルを使った分析
+### Example 3: Output Formats
 
-```python
-"""
-YAMLコンフィグを使った分析例
-"""
-import yaml
-from multidb_analyzer.elasticsearch.parsers import JavaElasticsearchParser
-from multidb_analyzer.elasticsearch.detectors import (
-    WildcardDetector,
-    LargeSizeDetector
-)
-from multidb_analyzer.core.base_detector import DetectorConfig, AnalysisContext
+```bash
+# HTML report
+multidb-analyzer analyze ./src --format html
 
-# 設定ファイルを読み込み
-with open('config.yaml', 'r') as f:
-    config = yaml.safe_load(f)
+# Multiple formats
+multidb-analyzer analyze ./src --format html,json,markdown
 
-# 検出器を設定付きで初期化
-wildcard_config = DetectorConfig(
-    enabled=config['detectors']['wildcard']['enabled'],
-    severity_override=config['detectors']['wildcard'].get('severity')
-)
-
-large_size_config = DetectorConfig(
-    custom_params={
-        'size_threshold': config['detectors']['large_size']['size_threshold']
-    }
-)
-
-detectors = [
-    WildcardDetector(config=wildcard_config),
-    LargeSizeDetector(config=large_size_config)
-]
-
-# 分析実行
-parser = JavaElasticsearchParser()
-# ... 以下は例1と同様
+# Custom output directory
+multidb-analyzer analyze ./src \
+  --format html,json \
+  --output ./analysis-reports
 ```
 
-**config.yaml**:
+### Example 4: LLM Integration
+
+```bash
+# Set API key
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Enable LLM analysis
+multidb-analyzer analyze ./src --llm
+
+# Or pass API key directly
+multidb-analyzer analyze ./src \
+  --llm \
+  --api-key "sk-ant-..."
+```
+
+---
+
+## Configuration Examples
+
+### Example 5: Basic Configuration File
+
+**config.yaml:**
 ```yaml
-detectors:
-  wildcard:
-    enabled: true
-    severity: CRITICAL
+# Simple configuration
+analysis:
+  enabled_databases:
+    - elasticsearch
+    - mysql
 
-  large_size:
-    enabled: true
-    size_threshold: 500
+reports:
+  formats:
+    - html
+    - json
+  output_dir: "./reports"
+```
+
+Usage:
+```bash
+multidb-analyzer analyze ./src --config config.yaml
+```
+
+### Example 6: Advanced Configuration
+
+**advanced-config.yaml:**
+```yaml
+analysis:
+  enabled_databases:
+    - elasticsearch
+    - mysql
+
+  parsers:
+    java:
+      include_patterns:
+        - "**/*.java"
+      exclude_patterns:
+        - "**/test/**"
+        - "**/generated/**"
+        - "**/build/**"
+      max_file_size: 500000  # 500KB
+
+    python:
+      include_patterns:
+        - "**/*.py"
+      exclude_patterns:
+        - "**/test_*.py"
+        - "**/__pycache__/**"
+        - "**/venv/**"
+
+reports:
+  formats:
+    - html
+    - json
+    - markdown
+
+  output_dir: "./analysis-results"
+
+  html:
+    include_toc: true
+    include_statistics: true
+    theme: "dark"
+
+  json:
+    pretty_print: true
+    include_metadata: true
+
+llm:
+  enabled: true
+  model: "claude-sonnet-3-5-20241022"
+  temperature: 0.0
+  max_retries: 3
+  timeout: 30
+
+logging:
+  level: "INFO"
+  format: "detailed"
+```
+
+### Example 7: Team Configuration
+
+**.multidb-analyzer.yml:**
+```yaml
+# Team-wide configuration
+analysis:
+  enabled_databases:
+    - elasticsearch
+    - mysql
+
+  parsers:
+    java:
+      exclude_patterns:
+        - "**/test/**"
+        - "**/target/**"
+
+    python:
+      exclude_patterns:
+        - "**/tests/**"
+        - "**/.venv/**"
+
+reports:
+  formats:
+    - html
+    - json
+
+  output_dir: "./reports"
+
+# Quality gates
+quality_gates:
+  max_critical: 0
+  max_high: 5
+  max_total: 50
 ```
 
 ---
 
-## カスタム検出器の作成
+## Programmatic API
 
-### 例4: カスタム検出器の実装
+### Example 8: Basic Python API
 
 ```python
-"""
-プロジェクト固有のルールを持つカスタム検出器
-"""
-from typing import List
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
+from multidb_analyzer.unified.analysis_config import AnalysisConfig
+
+# Create analyzer with defaults
+analyzer = UnifiedAnalyzer()
+
+# Analyze directory
+result = analyzer.analyze(["/path/to/code"])
+
+# Print summary
+print(f"Total files: {result.total_files}")
+print(f"Total issues: {result.total_issues}")
+print(f"Execution time: {result.execution_time:.2f}s")
+
+# Print issues by severity
+for severity, count in result.issues_by_severity.items():
+    print(f"{severity}: {count}")
+```
+
+### Example 9: Custom Configuration
+
+```python
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
+from multidb_analyzer.unified.analysis_config import AnalysisConfig
+
+# Custom configuration
+config = AnalysisConfig(
+    enable_elasticsearch=True,
+    enable_mysql=False,
+    java_exclude_patterns=[
+        "**/test/**",
+        "**/generated/**",
+    ],
+    max_file_size=500_000
+)
+
+# Create analyzer
+analyzer = UnifiedAnalyzer(config)
+
+# Analyze
+result = analyzer.analyze(["/path/to/code"])
+
+# Filter results
+critical_issues = result.filter_by_severity(Severity.CRITICAL)
+print(f"Critical issues: {len(critical_issues)}")
+```
+
+### Example 10: LLM Analysis
+
+```python
+import os
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
+
+# Get API key from environment
+api_key = os.getenv("ANTHROPIC_API_KEY")
+
+# Create analyzer with LLM
+analyzer = UnifiedAnalyzer(
+    enable_llm=True,
+    api_key=api_key
+)
+
+# Analyze
+result = analyzer.analyze(["/path/to/code"])
+
+# Check LLM-analyzed issues
+llm_issues = [i for i in result.issues if i.llm_analyzed]
+print(f"LLM analyzed {len(llm_issues)} issues")
+
+# Check auto-fix suggestions
+fixable = [i for i in result.issues if i.auto_fix_available]
+print(f"{len(fixable)} issues have auto-fix suggestions")
+```
+
+### Example 11: Multiple Project Analysis
+
+```python
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
+from pathlib import Path
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+analyzer = UnifiedAnalyzer()
+
+# Multiple projects
+projects = {
+    "Backend API": "/path/to/backend",
+    "Search Service": "/path/to/search",
+    "Data Pipeline": "/path/to/pipeline"
+}
+
+# Analyze each project
+results = {}
+for name, path in projects.items():
+    logging.info(f"Analyzing {name}...")
+    result = analyzer.analyze([path])
+    results[name] = result
+
+    # Generate reports
+    analyzer.generate_reports(
+        result,
+        Path(f"./reports/{name.replace(' ', '_').lower()}"),
+        formats=["html", "json"]
+    )
+
+# Summary
+print("\n=== Summary ===")
+for name, result in results.items():
+    print(f"{name}: {result.total_issues} issues ({result.execution_time:.2f}s)")
+```
+
+### Example 12: Progress Callback
+
+```python
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
+from typing import Optional
+
+def progress_callback(current: int, total: int, file_path: Optional[str] = None):
+    """Progress callback for analysis."""
+    percent = (current / total) * 100
+    print(f"\rProgress: {percent:.1f}% ({current}/{total})", end="")
+    if file_path:
+        print(f" - {Path(file_path).name}", end="")
+
+analyzer = UnifiedAnalyzer()
+result = analyzer.analyze(
+    ["/path/to/code"],
+    progress_callback=progress_callback
+)
+print()  # New line after progress
+```
+
+---
+
+## Custom Detectors
+
+### Example 13: Simple Custom Detector
+
+```python
 from multidb_analyzer.core.base_detector import (
     BaseDetector,
     Issue,
     Severity,
-    IssueCategory,
-    AnalysisContext
+    IssueCategory
 )
-from multidb_analyzer.elasticsearch.models import ElasticsearchQuery
+from pathlib import Path
+from typing import List
 
-class CustomAggregationDetector(BaseDetector):
-    """
-    複雑なアグリゲーションを検出するカスタム検出器
-    """
+class CustomElasticsearchDetector(BaseDetector):
+    """Detect custom Elasticsearch patterns."""
 
-    def __init__(self, config=None):
-        super().__init__(config)
-        self.name = "CustomAggregationDetector"
-
-    def detect(
-        self,
-        queries: List[ElasticsearchQuery],
-        context: AnalysisContext
-    ) -> List[Issue]:
-        """アグリゲーション関連の問題を検出"""
+    def detect(self, code: str, file_path: Path) -> List[Issue]:
         issues = []
 
-        for query in queries:
-            # カスタムロジック: 5階層以上のネストを検出
-            if self._has_deep_nested_aggregations(query):
-                issues.append(Issue(
-                    detector_name=self.name,
-                    severity=Severity.HIGH,
-                    category=IssueCategory.PERFORMANCE,
-                    title="Deep Nested Aggregations",
-                    description=(
-                        "Query contains deeply nested aggregations (>5 levels) "
-                        "which may cause performance issues and high memory usage."
-                    ),
-                    file_path=context.file_path,
-                    line_number=query.line_number,
-                    query_text=query.raw_code,
-                    suggestion=(
-                        "Consider:\n"
-                        "1. Flattening the aggregation structure\n"
-                        "2. Using composite aggregations\n"
-                        "3. Splitting into multiple queries"
-                    )
-                ))
+        # Example: Detect large size parameter
+        if "setSize(10000)" in code:
+            issues.append(Issue(
+                detector_name="CustomElasticsearchDetector",
+                severity=Severity.HIGH,
+                category=IssueCategory.PERFORMANCE,
+                title="Large result set size",
+                description="Requesting 10,000 results can cause memory issues",
+                file_path=file_path,
+                suggestion="Use scroll API for large result sets"
+            ))
 
-            # カスタムロジック: カーディナリティ集約の誤用を検出
-            if self._has_high_cardinality_aggregation(query):
-                issues.append(Issue(
-                    detector_name=self.name,
-                    severity=Severity.MEDIUM,
-                    category=IssueCategory.PERFORMANCE,
-                    title="High Cardinality Aggregation",
-                    description=(
-                        "Aggregation on high cardinality field without proper limits"
-                    ),
-                    file_path=context.file_path,
-                    line_number=query.line_number,
-                    query_text=query.raw_code,
-                    suggestion="Use 'size' parameter to limit results"
-                ))
+        # Example: Missing query timeout
+        if "SearchRequest" in code and "setTimeout" not in code:
+            issues.append(Issue(
+                detector_name="CustomElasticsearchDetector",
+                severity=Severity.MEDIUM,
+                category=IssueCategory.RELIABILITY,
+                title="Missing query timeout",
+                description="Query without timeout can hang indefinitely",
+                file_path=file_path,
+                suggestion="Add setTimeout() to SearchRequest"
+            ))
 
         return issues
 
-    def _has_deep_nested_aggregations(self, query: ElasticsearchQuery) -> bool:
-        """ネストの深さをチェック"""
-        code = query.raw_code.lower()
-        # シンプルな実装: "aggregation("の出現回数をカウント
-        return code.count('aggregation(') > 5
-
-    def _has_high_cardinality_aggregation(self, query: ElasticsearchQuery) -> bool:
-        """高カーディナリティフィールドへの集約をチェック"""
-        code = query.raw_code.lower()
-        high_cardinality_fields = ['user_id', 'session_id', 'ip_address']
-
-        for field in high_cardinality_fields:
-            if f'terms("{field}"' in code or f"terms('{field}'" in code:
-                # sizeパラメータがあるかチェック
-                if '.size(' not in code:
-                    return True
-        return False
-
-# 使用例
-if __name__ == '__main__':
-    from multidb_analyzer.elasticsearch.parsers import JavaElasticsearchParser
-
-    parser = JavaElasticsearchParser()
-    custom_detector = CustomAggregationDetector()
-
-    with open('AnalyticsService.java', 'r') as f:
-        code = f.read()
-
-    queries = parser.parse_file('AnalyticsService.java', code)
-    context = AnalysisContext(
-        file_path='AnalyticsService.java',
-        code_content=code
-    )
-
-    issues = custom_detector.detect(queries, context)
-    print(f"Found {len(issues)} custom issues")
+# Usage
+detector = CustomElasticsearchDetector()
+issues = detector.detect(code, file_path)
 ```
 
----
-
-## LLM統合の実践例
-
-### 例5: 基本的なLLM分析
+### Example 14: Advanced Custom Detector with AST
 
 ```python
-"""
-LLMを使った問題分析の基本例
-"""
-from multidb_analyzer.llm import LLMOptimizer, ClaudeModel
-from multidb_analyzer.elasticsearch.parsers import JavaElasticsearchParser
-from multidb_analyzer.elasticsearch.detectors import WildcardDetector
-from multidb_analyzer.core.base_detector import AnalysisContext
-
-# LLM Optimizerを初期化
-optimizer = LLMOptimizer(
-    api_key="sk-ant-xxxxx",  # または環境変数から
-    model=ClaudeModel.SONNET,
-    temperature=0.3  # 技術的な分析には低温度
+import javalang
+from multidb_analyzer.core.base_detector import (
+    BaseDetector,
+    Issue,
+    Severity,
+    IssueCategory
 )
+from pathlib import Path
+from typing import List, Optional
 
-# コードを分析
-with open('SearchService.java', 'r', encoding='utf-8') as f:
-    code = f.read()
+class AdvancedElasticsearchDetector(BaseDetector):
+    """Advanced Elasticsearch detector using AST."""
 
-parser = JavaElasticsearchParser()
-queries = parser.parse_file('SearchService.java', code)
+    def detect(self, code: str, file_path: Path) -> List[Issue]:
+        issues = []
 
-context = AnalysisContext(
-    file_path='SearchService.java',
-    code_content=code
-)
+        try:
+            tree = javalang.parse.parse(code)
 
-# 問題を検出
-detector = WildcardDetector()
-issues = detector.detect(queries, context)
+            # Find method invocations
+            for path, node in tree:
+                if isinstance(node, javalang.tree.MethodInvocation):
+                    if node.member == "search":
+                        # Check arguments
+                        issue = self._check_search_call(node, file_path)
+                        if issue:
+                            issues.append(issue)
 
-# LLMで詳細分析
-for issue in issues:
-    print(f"\nAnalyzing: {issue.title}")
+        except javalang.parser.JavaSyntaxError:
+            pass  # Skip files with syntax errors
 
-    # コードスニペットを抽出（問題の前後5行）
-    lines = code.split('\n')
-    start = max(0, issue.line_number - 5)
-    end = min(len(lines), issue.line_number + 5)
-    code_snippet = '\n'.join(lines[start:end])
+        return issues
 
-    # LLMで最適化提案を生成
-    result = optimizer.optimize_issue(
-        issue=issue,
-        code=code_snippet,
-        language="java",
-        db_type="elasticsearch"
-    )
+    def _check_search_call(
+        self,
+        node: javalang.tree.MethodInvocation,
+        file_path: Path
+    ) -> Optional[Issue]:
+        """Check search method call for issues."""
 
-    print(f"\n=== Optimization Result ===")
-    print(f"Root Cause: {result.root_cause}")
-    print(f"Performance Impact: {result.performance_impact}")
-    print(f"\nOptimized Code:\n{result.optimized_code}")
-    print(f"\nImplementation Steps:")
-    for i, step in enumerate(result.implementation_steps, 1):
-        print(f"{i}. {step}")
-    print(f"\nTesting Strategy: {result.testing_strategy}")
-    print(f"Trade-offs: {result.trade_offs}")
-    print(f"Confidence: {result.confidence_score:.2f}")
-
-# API使用統計を確認
-stats = optimizer.get_usage_stats()
-print(f"\n=== API Usage ===")
-print(f"Total requests: {stats['total_requests']}")
-print(f"Total cost: ${stats['total_cost_usd']:.4f}")
-```
-
-### 例6: バッチ最適化
-
-```python
-"""
-複数の問題を効率的にバッチ処理
-"""
-from multidb_analyzer.llm import LLMOptimizer
-from multidb_analyzer.elasticsearch.parsers import JavaElasticsearchParser
-from multidb_analyzer.elasticsearch.detectors import get_all_detectors
-from multidb_analyzer.core.base_detector import AnalysisContext
-
-def extract_code_snippets(code: str, issues: list, context_lines: int = 5):
-    """問題箇所のコードスニペットを抽出"""
-    lines = code.split('\n')
-    snippets = {}
-
-    for issue in issues:
-        start = max(0, issue.line_number - context_lines)
-        end = min(len(lines), issue.line_number + context_lines)
-        snippet = '\n'.join(lines[start:end])
-
-        key = f"{issue.file_path}:{issue.line_number}"
-        snippets[key] = snippet
-
-    return snippets
-
-# 分析とバッチ最適化
-optimizer = LLMOptimizer(api_key="sk-ant-xxxxx")
-parser = JavaElasticsearchParser()
-detectors = get_all_detectors()
-
-with open('SearchService.java', 'r') as f:
-    code = f.read()
-
-queries = parser.parse_file('SearchService.java', code)
-context = AnalysisContext(file_path='SearchService.java', code_content=code)
-
-# すべての問題を検出
-all_issues = []
-for detector in detectors:
-    issues = detector.detect(queries, context)
-    all_issues.extend(issues)
-
-print(f"Found {len(all_issues)} issues")
-
-# コードスニペットを抽出
-code_snippets = extract_code_snippets(code, all_issues)
-
-# バッチ最適化（APIコールを最小化）
-print("Running batch optimization...")
-results = optimizer.optimize_batch(
-    issues=all_issues,
-    code_snippets=code_snippets,
-    language="java"
-)
-
-# 結果を保存
-import json
-output_data = {
-    'total_issues': len(all_issues),
-    'optimizations': [result.to_dict() for result in results]
-}
-
-with open('optimization_results.json', 'w') as f:
-    json.dump(output_data, f, indent=2)
-
-print(f"Saved results to optimization_results.json")
-```
-
-### 例7: 問題の優先順位付け
-
-```python
-"""
-LLMを使って問題の優先順位を決定
-"""
-from multidb_analyzer.llm import LLMOptimizer
-from multidb_analyzer.elasticsearch.parsers import JavaElasticsearchParser
-from multidb_analyzer.elasticsearch.detectors import get_all_detectors
-from multidb_analyzer.core.base_detector import AnalysisContext
-
-# 問題を検出（省略）
-# all_issues = ...
-
-optimizer = LLMOptimizer()
-
-# LLMで優先順位を決定
-print("Prioritizing issues with LLM...")
-prioritization = optimizer.prioritize_issues(all_issues)
-
-# Quick Winsを表示
-print("\n=== Quick Wins (easy, high impact) ===")
-for issue_id in prioritization['quick_wins']:
-    issue = all_issues[int(issue_id)]
-    print(f"- {issue.title} ({issue.file_path}:{issue.line_number})")
-
-# High Risk, High Rewardを表示
-print("\n=== High Risk, High Reward ===")
-for issue_id in prioritization['high_risk_high_reward']:
-    issue = all_issues[int(issue_id)]
-    print(f"- {issue.title} ({issue.file_path}:{issue.line_number})")
-
-# 優先順位付きリストを表示
-print("\n=== Prioritized Issues ===")
-for item in prioritization['prioritized_issues']:
-    issue = all_issues[item['issue_id']]
-    print(f"{item['recommended_order']}. [{item['priority_score']:.2f}] {issue.title}")
-    print(f"   {issue.file_path}:{issue.line_number}")
-```
-
-### 例8: 自動修正の生成と適用
-
-```python
-"""
-自動修正コードの生成と適用
-"""
-from multidb_analyzer.llm import LLMOptimizer
-from multidb_analyzer.elasticsearch.parsers import JavaElasticsearchParser
-from multidb_analyzer.elasticsearch.detectors import WildcardDetector
-from multidb_analyzer.core.base_detector import AnalysisContext
-import re
-
-def apply_fix(file_path: str, line_number: int, original_code: str, fixed_code: str):
-    """ファイルに修正を適用"""
-    with open(file_path, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-
-    # 元のコードを検索して置換
-    for i, line in enumerate(lines):
-        if original_code.strip() in line and i + 1 == line_number:
-            lines[i] = line.replace(original_code.strip(), fixed_code.strip())
-            break
-
-    # バックアップを作成
-    backup_path = f"{file_path}.backup"
-    with open(backup_path, 'w', encoding='utf-8') as f:
-        f.writelines(lines)
-
-    # 修正を適用
-    with open(file_path, 'w', encoding='utf-8') as f:
-        f.writelines(lines)
-
-    print(f"Applied fix to {file_path} (backup: {backup_path})")
-
-# 問題を検出
-optimizer = LLMOptimizer()
-parser = JavaElasticsearchParser()
-
-with open('SearchService.java', 'r') as f:
-    code = f.read()
-
-queries = parser.parse_file('SearchService.java', code)
-context = AnalysisContext(file_path='SearchService.java', code_content=code)
-
-detector = WildcardDetector()
-issues = detector.detect(queries, context)
-
-# 自動修正を生成
-for issue in issues:
-    print(f"\nGenerating fix for: {issue.title}")
-
-    # コードスニペットを抽出
-    lines = code.split('\n')
-    problem_line = lines[issue.line_number - 1]
-
-    # 自動修正を生成
-    fix = optimizer.generate_auto_fix(
-        issue=issue,
-        code=problem_line,
-        db_type="elasticsearch",
-        framework="Spring Data",
-        language="java"
-    )
-
-    print(f"Confidence: {fix['confidence']:.2f}")
-
-    if fix['confidence'] > 0.8:
-        print(f"Original: {problem_line.strip()}")
-        print(f"Fixed:    {fix['fixed_code'].strip()}")
-
-        # ユーザー確認
-        response = input("Apply this fix? (y/n): ")
-        if response.lower() == 'y':
-            apply_fix(
-                file_path='SearchService.java',
-                line_number=issue.line_number,
-                original_code=problem_line.strip(),
-                fixed_code=fix['fixed_code'].strip()
+        # Example: Check for wildcard queries
+        if self._has_wildcard_query(node):
+            return Issue(
+                detector_name="AdvancedElasticsearchDetector",
+                severity=Severity.HIGH,
+                category=IssueCategory.PERFORMANCE,
+                title="Wildcard query detected",
+                description="Wildcard queries can be very slow",
+                file_path=file_path,
+                suggestion="Use match query or keyword field"
             )
-        else:
-            print("Skipped")
-    else:
-        print("Confidence too low, skipping auto-fix")
-        print(f"Migration notes: {fix['migration_notes']}")
+
+        return None
+
+    def _has_wildcard_query(self, node) -> bool:
+        """Check if method call uses wildcard query."""
+        # Implementation details...
+        return False
+```
+
+### Example 15: Register Custom Detector
+
+```python
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
+
+# Create analyzer
+analyzer = UnifiedAnalyzer()
+
+# Register custom detector
+analyzer.register_detector(CustomElasticsearchDetector())
+
+# Analyze with custom detector
+result = analyzer.analyze(["/path/to/code"])
 ```
 
 ---
 
-## レポート生成
+## Reporting
 
-### 例9: HTMLレポートのカスタマイズ
+### Example 16: Generate Custom HTML Report
 
 ```python
-"""
-カスタマイズされたHTMLレポートを生成
-"""
-from multidb_analyzer.reporters import HTMLReporter, ReportConfig
-from multidb_analyzer.elasticsearch.parsers import JavaElasticsearchParser
-from multidb_analyzer.elasticsearch.detectors import get_all_detectors
-from multidb_analyzer.core.base_detector import AnalysisContext
-from datetime import datetime
+from multidb_analyzer.unified.reporters import HTMLReporter
+from pathlib import Path
 
-# 分析を実行（省略）
-# all_issues = ...
+# Analyze
+analyzer = UnifiedAnalyzer()
+result = analyzer.analyze(["/path/to/code"])
 
-# レポート設定
-config = ReportConfig(
-    title=f"Elasticsearch Analysis Report - {datetime.now().strftime('%Y-%m-%d')}",
-    subtitle="SearchService.java Analysis",
+# Create custom HTML report
+reporter = HTMLReporter(
+    include_toc=True,
     include_statistics=True,
-    include_code_snippets=True,
-    max_snippet_lines=10,
-    group_by='severity',  # 'file', 'detector', 'severity'
-    custom_css="""
-        .critical { background-color: #ff4444; }
-        .high { background-color: #ffaa00; }
-        .medium { background-color: #ffdd00; }
-    """
+    theme="dark"
 )
 
-# HTMLレポートを生成
-reporter = HTMLReporter(config=config)
-reporter.generate(
-    issues=all_issues,
-    output_path='./reports/analysis_report.html'
+output_path = reporter.generate(
+    result,
+    Path("./reports/custom_report.html")
 )
 
-print("Report generated: ./reports/analysis_report.html")
+print(f"Report generated: {output_path}")
 ```
 
-### 例10: 複数形式のレポート生成
+### Example 17: Generate Multiple Report Formats
 
 ```python
-"""
-HTML、JSON、Markdownを同時に生成
-"""
-from multidb_analyzer.reporters import (
+from multidb_analyzer.unified.reporters import (
     HTMLReporter,
     JSONReporter,
     MarkdownReporter,
-    ReportConfig
+    ConsoleReporter
 )
+from pathlib import Path
 
-# 分析結果（省略）
-# all_issues = ...
+result = analyzer.analyze(["/path/to/code"])
 
-output_dir = './reports'
-base_config = ReportConfig(
-    title="Elasticsearch Analysis Report",
-    include_statistics=True
-)
+reports_dir = Path("./reports")
+reports_dir.mkdir(exist_ok=True)
 
-# HTML
-html_reporter = HTMLReporter(base_config)
-html_reporter.generate(all_issues, f"{output_dir}/report.html")
+# HTML report
+html_reporter = HTMLReporter()
+html_path = html_reporter.generate(result, reports_dir / "report.html")
 
-# JSON (CI/CD向け)
-json_reporter = JSONReporter(base_config)
-json_reporter.generate(all_issues, f"{output_dir}/report.json")
+# JSON report
+json_reporter = JSONReporter(pretty_print=True)
+json_path = json_reporter.generate(result, reports_dir / "report.json")
 
-# Markdown (GitHub向け)
-md_reporter = MarkdownReporter(base_config)
-md_reporter.generate(all_issues, f"{output_dir}/REPORT.md")
+# Markdown report
+md_reporter = MarkdownReporter(include_toc=True)
+md_path = md_reporter.generate(result, reports_dir / "report.md")
 
-print(f"Reports generated in {output_dir}/")
+# Console report (to file)
+console_reporter = ConsoleReporter()
+txt_path = console_reporter.generate(result, reports_dir / "report.txt")
+
+print(f"Generated {len([html_path, json_path, md_path, txt_path])} reports")
+```
+
+### Example 18: Custom JSON Processing
+
+```python
+import json
+from pathlib import Path
+
+# Generate JSON report
+result = analyzer.analyze(["/path/to/code"])
+json_reporter = JSONReporter()
+json_path = json_reporter.generate(result, Path("report.json"))
+
+# Load and process JSON
+with open(json_path) as f:
+    report = json.load(f)
+
+# Filter critical issues
+critical_issues = [
+    issue for issue in report['issues']
+    if issue['severity'] == 'critical'
+]
+
+# Create summary
+summary = {
+    'total_issues': len(report['issues']),
+    'critical': len(critical_issues),
+    'files_affected': len(set(i['file_path'] for i in report['issues'])),
+    'most_common_detector': max(
+        (i['detector_name'] for i in report['issues']),
+        key=lambda d: sum(1 for i in report['issues'] if i['detector_name'] == d)
+    )
+}
+
+print(json.dumps(summary, indent=2))
 ```
 
 ---
 
-## CI/CD統合
+## CI/CD Scripts
 
-### 例11: GitHub Actions統合
+### Example 19: GitHub Actions Script
 
+**.github/workflows/multidb-analysis.yml:**
 ```yaml
-# .github/workflows/code-analysis.yml
-name: Elasticsearch Code Analysis
+name: MultiDB Analysis
 
 on:
   push:
-    branches: [main, develop]
+    branches: [ main, develop ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
   analyze:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+    - uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
 
-      - name: Install dependencies
-        run: |
-          cd phase4_multidb
-          pip install -r requirements.txt
-          pip install -e .
+    - name: Install MultiDB Analyzer
+      run: pip install multidb-analyzer
 
-      - name: Run Elasticsearch Analysis
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          python -m multidb_analyzer analyze ./src \
-            --format json \
-            --output ./reports/analysis.json
+    - name: Run Analysis
+      id: analysis
+      run: |
+        multidb-analyzer analyze ./src \
+          --format json,html \
+          --output ./reports
 
-      - name: Check for critical issues
-        run: |
-          python .github/scripts/check_critical_issues.py ./reports/analysis.json
+        # Capture exit code
+        echo "exit_code=$?" >> $GITHUB_OUTPUT
 
-      - name: Upload report
-        uses: actions/upload-artifact@v3
-        with:
-          name: analysis-report
-          path: ./reports/analysis.json
+    - name: Check Quality Gate
+      run: |
+        python scripts/quality_gate.py reports/analysis_report.json
 
-      - name: Comment on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const fs = require('fs');
-            const report = JSON.parse(fs.readFileSync('./reports/analysis.json'));
-            const body = `## Elasticsearch Analysis Results
-
-            - Total Issues: ${report.total_issues}
-            - Critical: ${report.critical_count}
-            - High: ${report.high_count}
-
-            [View Full Report](link-to-artifact)`;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
+    - name: Upload Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: analysis-reports
+        path: reports/
 ```
 
-**check_critical_issues.py**:
+**scripts/quality_gate.py:**
 ```python
-#!/usr/bin/env python3
-"""CI/CDで使用: CRITICALな問題がある場合はビルド失敗"""
-import sys
 import json
+import sys
+from pathlib import Path
 
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: check_critical_issues.py <report.json>")
-        sys.exit(1)
-
-    with open(sys.argv[1], 'r') as f:
+def check_quality_gate(report_path: Path) -> int:
+    """Check if analysis passes quality gates."""
+    with open(report_path) as f:
         report = json.load(f)
 
-    critical_issues = [
-        issue for issue in report['issues']
-        if issue['severity'] == 'CRITICAL'
-    ]
+    stats = report['statistics']['by_severity']
 
-    if critical_issues:
-        print(f"❌ Found {len(critical_issues)} CRITICAL issues:")
-        for issue in critical_issues:
-            print(f"  - {issue['title']} ({issue['file_path']}:{issue['line_number']})")
-        sys.exit(1)
-    else:
-        print("✅ No critical issues found")
-        sys.exit(0)
+    # Define thresholds
+    if stats.get('critical', 0) > 0:
+        print(f"❌ FAILED: {stats['critical']} critical issues")
+        return 1
 
-if __name__ == '__main__':
-    main()
+    if stats.get('high', 0) > 10:
+        print(f"❌ FAILED: {stats['high']} high issues (max 10)")
+        return 1
+
+    if report['summary']['total_issues'] > 100:
+        print(f"❌ FAILED: {report['summary']['total_issues']} total issues (max 100)")
+        return 1
+
+    print("✅ PASSED: All quality gates passed")
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(check_quality_gate(Path(sys.argv[1])))
+```
+
+### Example 20: GitLab CI Script
+
+**.gitlab-ci.yml:**
+```yaml
+stages:
+  - analyze
+  - report
+  - notify
+
+variables:
+  REPORTS_DIR: "reports"
+
+analyze:
+  stage: analyze
+  image: python:3.11
+  script:
+    - pip install multidb-analyzer
+    - |
+      multidb-analyzer analyze ./src \
+        --format json,html \
+        --output ${REPORTS_DIR}
+  artifacts:
+    paths:
+      - ${REPORTS_DIR}/
+    expire_in: 1 week
+  only:
+    - merge_requests
+    - main
+
+quality_gate:
+  stage: report
+  image: python:3.11
+  script:
+    - python scripts/quality_gate.py ${REPORTS_DIR}/analysis_report.json
+  needs:
+    - analyze
+  allow_failure: false
+
+notify_slack:
+  stage: notify
+  image: python:3.11
+  script:
+    - pip install requests
+    - python scripts/notify_slack.py ${REPORTS_DIR}/analysis_report.json
+  needs:
+    - analyze
+  when: on_failure
 ```
 
 ---
 
-## 高度な使用例
+## Advanced Use Cases
 
-### 例12: パフォーマンス最適化
+### Example 21: Incremental Analysis
+
+```bash
+#!/bin/bash
+# analyze_changes.sh - Analyze only changed files
+
+# Get changed files in current PR/branch
+CHANGED_FILES=$(git diff --name-only origin/main...HEAD | grep -E '\.(java|py)$')
+
+if [ -z "$CHANGED_FILES" ]; then
+    echo "No relevant files changed"
+    exit 0
+fi
+
+echo "Analyzing changed files:"
+echo "$CHANGED_FILES"
+
+# Analyze only changed files
+multidb-analyzer analyze $CHANGED_FILES \
+    --format json,console \
+    --output ./reports/incremental
+```
+
+### Example 22: Baseline Comparison
 
 ```python
-"""
-大規模コードベースの並列分析
-"""
-from concurrent.futures import ProcessPoolExecutor, as_completed
+import json
 from pathlib import Path
-from multidb_analyzer.elasticsearch.parsers import JavaElasticsearchParser
-from multidb_analyzer.elasticsearch.detectors import get_all_detectors
-from multidb_analyzer.core.base_detector import AnalysisContext
 
-def analyze_file(file_path: str):
-    """単一ファイルを分析"""
-    try:
-        parser = JavaElasticsearchParser()
-        detectors = get_all_detectors()
+def compare_with_baseline(current_report: Path, baseline_report: Path):
+    """Compare current analysis with baseline."""
 
-        with open(file_path, 'r', encoding='utf-8') as f:
-            code = f.read()
+    with open(current_report) as f:
+        current = json.load(f)
 
-        queries = parser.parse_file(file_path, code)
-        if not queries:
-            return []
+    with open(baseline_report) as f:
+        baseline = json.load(f)
 
-        context = AnalysisContext(file_path=file_path, code_content=code)
+    # Compare statistics
+    current_total = current['summary']['total_issues']
+    baseline_total = baseline['summary']['total_issues']
 
-        all_issues = []
-        for detector in detectors:
-            issues = detector.detect(queries, context)
-            all_issues.extend(issues)
+    diff = current_total - baseline_total
+    percent = (diff / baseline_total * 100) if baseline_total > 0 else 0
 
-        return all_issues
+    print(f"Current issues: {current_total}")
+    print(f"Baseline issues: {baseline_total}")
+    print(f"Difference: {diff:+d} ({percent:+.1f}%)")
 
-    except Exception as e:
-        print(f"Error analyzing {file_path}: {e}")
-        return []
+    # Fail if issues increased significantly
+    if diff > 10 or percent > 20:
+        print("❌ Too many new issues introduced!")
+        return 1
 
-def parallel_analysis(project_dir: str, max_workers: int = 4):
-    """プロジェクトを並列分析"""
-    # Javaファイルを検索
-    project_path = Path(project_dir)
-    java_files = list(project_path.rglob('*.java'))
+    print("✅ No significant increase in issues")
+    return 0
 
-    print(f"Analyzing {len(java_files)} files with {max_workers} workers...")
-
-    all_issues = []
-    with ProcessPoolExecutor(max_workers=max_workers) as executor:
-        # ファイルを並列処理
-        future_to_file = {
-            executor.submit(analyze_file, str(f)): f
-            for f in java_files
-        }
-
-        for future in as_completed(future_to_file):
-            file_path = future_to_file[future]
-            try:
-                issues = future.result()
-                all_issues.extend(issues)
-                print(f"✓ {file_path.name}: {len(issues)} issues")
-            except Exception as e:
-                print(f"✗ {file_path.name}: {e}")
-
-    return all_issues
-
-# 実行
-if __name__ == '__main__':
-    issues = parallel_analysis('/path/to/large/project', max_workers=8)
-    print(f"\nTotal: {len(issues)} issues found")
+if __name__ == "__main__":
+    import sys
+    sys.exit(compare_with_baseline(
+        Path(sys.argv[1]),
+        Path(sys.argv[2])
+    ))
 ```
 
-### 例13: 継続的モニタリング
+### Example 23: Multi-Repository Analysis
 
 ```python
-"""
-プロジェクトの変更を監視して自動分析
-"""
-import time
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
 from pathlib import Path
-from multidb_analyzer.elasticsearch.parsers import JavaElasticsearchParser
-from multidb_analyzer.elasticsearch.detectors import get_all_detectors
-from multidb_analyzer.core.base_detector import AnalysisContext
+import logging
 
-class JavaFileHandler(FileSystemEventHandler):
-    """Javaファイルの変更を監視"""
+logging.basicConfig(level=logging.INFO)
 
-    def __init__(self):
-        self.parser = JavaElasticsearchParser()
-        self.detectors = get_all_detectors()
+# Multiple repositories
+repositories = [
+    {
+        "name": "Backend API",
+        "path": "/repos/backend-api",
+        "databases": ["elasticsearch", "mysql"]
+    },
+    {
+        "name": "Search Service",
+        "path": "/repos/search-service",
+        "databases": ["elasticsearch"]
+    },
+    {
+        "name": "User Service",
+        "path": "/repos/user-service",
+        "databases": ["mysql"]
+    }
+]
 
-    def on_modified(self, event):
-        if event.is_directory:
-            return
+# Analyze all repositories
+all_results = []
 
-        if not event.src_path.endswith('.java'):
-            return
+for repo in repositories:
+    logging.info(f"Analyzing {repo['name']}...")
 
-        print(f"\n📝 File modified: {event.src_path}")
-        self.analyze_file(event.src_path)
+    config = AnalysisConfig(
+        enable_elasticsearch="elasticsearch" in repo["databases"],
+        enable_mysql="mysql" in repo["databases"]
+    )
 
-    def analyze_file(self, file_path: str):
-        """ファイルを分析"""
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                code = f.read()
+    analyzer = UnifiedAnalyzer(config)
+    result = analyzer.analyze([repo["path"]])
 
-            queries = self.parser.parse_file(file_path, code)
+    all_results.append({
+        "name": repo["name"],
+        "result": result
+    })
 
-            if not queries:
-                print("  ℹ️ No queries found")
-                return
+    # Generate reports
+    reports_dir = Path(f"./reports/{repo['name'].replace(' ', '-').lower()}")
+    analyzer.generate_reports(result, reports_dir, ["html", "json"])
 
-            context = AnalysisContext(file_path=file_path, code_content=code)
+# Summary report
+print("\n=== Multi-Repository Analysis Summary ===")
+total_issues = 0
+for item in all_results:
+    issues = item["result"].total_issues
+    total_issues += issues
+    print(f"{item['name']}: {issues} issues")
 
-            all_issues = []
-            for detector in self.detectors:
-                issues = detector.detect(queries, context)
-                all_issues.extend(issues)
+print(f"\nTotal across all repositories: {total_issues} issues")
+```
 
-            if all_issues:
-                print(f"  ⚠️ Found {len(all_issues)} issues:")
-                for issue in all_issues[:5]:  # 最初の5件のみ表示
-                    print(f"    - {issue.severity.value}: {issue.title}")
-                if len(all_issues) > 5:
-                    print(f"    ... and {len(all_issues) - 5} more")
-            else:
-                print("  ✅ No issues found")
+### Example 24: Scheduled Analysis
 
-        except Exception as e:
-            print(f"  ❌ Error: {e}")
+```python
+#!/usr/bin/env python3
+"""
+scheduled_analysis.py - Run analysis on schedule
+Usage: Add to crontab:
+  0 2 * * * /path/to/scheduled_analysis.py
+"""
 
-# 監視開始
-if __name__ == '__main__':
-    path = '/path/to/project/src'
-    event_handler = JavaFileHandler()
-    observer = Observer()
-    observer.schedule(event_handler, path, recursive=True)
-    observer.start()
+import sys
+from pathlib import Path
+from datetime import datetime
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
 
-    print(f"👀 Watching for changes in {path}...")
-    print("Press Ctrl+C to stop")
+def run_scheduled_analysis():
+    """Run daily analysis and save results."""
 
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        observer.stop()
+    # Timestamp for this run
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    observer.join()
+    # Analyze
+    analyzer = UnifiedAnalyzer()
+    result = analyzer.analyze(["/path/to/code"])
+
+    # Generate reports with timestamp
+    reports_dir = Path(f"./reports/scheduled/{timestamp}")
+    reports_dir.mkdir(parents=True, exist_ok=True)
+
+    analyzer.generate_reports(result, reports_dir, ["html", "json"])
+
+    # Log results
+    log_file = Path("./reports/scheduled/analysis.log")
+    with open(log_file, "a") as f:
+        f.write(
+            f"{timestamp}: {result.total_issues} issues, "
+            f"{result.execution_time:.2f}s\n"
+        )
+
+    print(f"Analysis complete: {result.total_issues} issues")
+
+    # Return exit code based on results
+    if result.issues_by_severity.get('critical', 0) > 0:
+        return 2
+    elif result.issues_by_severity.get('high', 0) > 10:
+        return 1
+    return 0
+
+if __name__ == "__main__":
+    sys.exit(run_scheduled_analysis())
 ```
 
 ---
 
-## まとめ
-
-このサンプルコード集では、以下のトピックをカバーしました:
-
-1. **基本的な使い方**: シンプルな分析からディレクトリ全体の分析まで
-2. **カスタム検出器**: プロジェクト固有のルールを実装
-3. **LLM統合**: Claude APIを使った高度な分析
-4. **レポート生成**: 複数形式でのレポート出力
-5. **CI/CD統合**: GitHub Actionsでの自動化
-6. **高度な使用例**: 並列処理と継続的モニタリング
-
----
-
-**次のステップ**: [LLM_INTEGRATION.md](./LLM_INTEGRATION.md)でLLM統合の詳細を学んでください。
+**For more information:**
+- [CLI Usage Guide](./CLI_USAGE.md)
+- [API Reference](./API_REFERENCE.md)
+- [Integration Guide](./INTEGRATION_GUIDE.md)

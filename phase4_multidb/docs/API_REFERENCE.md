@@ -1,787 +1,904 @@
-# API リファレンス
+# MultiDB Analyzer API Reference
 
-**バージョン**: v1.0.0
-**最終更新**: 2025年01月27日
+**Version:** 1.0.0
+**Last Updated:** 2025-11-03
 
-## 目次
+## Table of Contents
 
-1. [パーサー API](#パーサー-api)
-2. [検出器 API](#検出器-api)
-3. [LLM統合 API](#llm統合-api)
-4. [レポーター API](#レポーター-api)
-5. [コアモデル](#コアモデル)
-6. [ユーティリティ](#ユーティリティ)
-
----
-
-## パーサー API
-
-### JavaElasticsearchParser
-
-Javaコード内のElasticsearchクエリを抽出するパーサー。
-
-#### クラス定義
-
-```python
-class JavaElasticsearchParser:
-    """
-    JavaコードからElasticsearchクエリを抽出
-
-    Attributes:
-        query_patterns (List[Dict[str, str]]): クエリパターン定義
-        import_patterns (List[str]): インポートパターン
-    """
-```
-
-#### メソッド
-
-##### `parse_file(file_path: str, code: str) -> List[ElasticsearchQuery]`
-
-Javaファイルを解析してクエリを抽出します。
-
-**パラメータ**:
-- `file_path` (str): ファイルパス
-- `code` (str): Javaコード
-
-**戻り値**:
-- `List[ElasticsearchQuery]`: 抽出されたクエリのリスト
-
-**例外**:
-- `ParsingError`: 構文エラーが発生した場合
-
-**使用例**:
-
-```python
-parser = JavaElasticsearchParser()
-queries = parser.parse_file('SearchService.java', code_content)
-
-for query in queries:
-    print(f"Query: {query.query_type}")
-    print(f"Line: {query.line_number}")
-```
-
-##### `extract_query_builders(tree: javalang.tree.CompilationUnit) -> List[Dict[str, Any]]`
-
-ASTからQueryBuilderの呼び出しを抽出します。
-
-**パラメータ**:
-- `tree` (CompilationUnit): Java AST
-
-**戻り値**:
-- `List[Dict[str, Any]]`: クエリビルダー情報
-
-**内部メソッド** (通常は直接呼び出さない):
-
-```python
-def _extract_method_invocation(
-    node: javalang.tree.MethodInvocation,
-    context: Dict[str, Any]
-) -> Optional[Dict[str, Any]]:
-    """メソッド呼び出しから情報抽出"""
-```
+- [Overview](#overview)
+- [Core Classes](#core-classes)
+  - [UnifiedAnalyzer](#unifiedanalyzer)
+  - [AnalysisConfig](#analysisconfig)
+  - [AnalysisResult](#analysisresult)
+  - [Issue](#issue)
+- [Detectors](#detectors)
+- [Reporters](#reporters)
+- [Utilities](#utilities)
+- [Examples](#examples)
 
 ---
 
-## 検出器 API
+## Overview
 
-すべての検出器は`BaseDetector`を継承します。
+The MultiDB Analyzer provides a comprehensive Python API for programmatic analysis of database-related code issues. This document describes the public API for integrating the analyzer into your applications.
 
-### BaseDetector
-
-#### クラス定義
+### Installation
 
 ```python
-class BaseDetector(ABC):
-    """
-    基底検出器クラス
-
-    Attributes:
-        name (str): 検出器名
-        config (DetectorConfig): 設定
-    """
-
-    def __init__(self, config: Optional[DetectorConfig] = None):
-        self.config = config or DetectorConfig()
+pip install multidb-analyzer
 ```
 
-#### 抽象メソッド
-
-##### `detect(queries: List[Query], context: AnalysisContext) -> List[Issue]`
-
-クエリを分析して問題を検出します。
-
-**パラメータ**:
-- `queries` (List[Query]): 分析対象のクエリ
-- `context` (AnalysisContext): 分析コンテキスト
-
-**戻り値**:
-- `List[Issue]`: 検出された問題のリスト
-
----
-
-### WildcardDetector
-
-先頭ワイルドカードを検出します。
-
-#### 使用例
+### Quick Start
 
 ```python
-from multidb_analyzer.elasticsearch.detectors import WildcardDetector
-from multidb_analyzer.core.base_detector import AnalysisContext
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
+from multidb_analyzer.unified.analysis_config import AnalysisConfig
 
-detector = WildcardDetector()
-context = AnalysisContext(
-    file_path='SearchService.java',
-    code_content=code
+# Configure
+config = AnalysisConfig(
+    enable_elasticsearch=True,
+    enable_mysql=True
 )
 
-issues = detector.detect(queries, context)
-```
+# Analyze
+analyzer = UnifiedAnalyzer(config)
+result = analyzer.analyze(["/path/to/code"])
 
-#### 検出ロジック
-
-```python
-def detect(self, queries: List[ElasticsearchQuery], context: AnalysisContext) -> List[Issue]:
-    """
-    先頭ワイルドカードパターンを検出
-
-    検出パターン:
-    - wildcardQuery("field", "*value")
-    - wildcardQuery("field", "?value")
-    """
+# Results
+print(f"Found {result.total_issues} issues")
 ```
 
 ---
 
-### NPlusOneDetector
+## Core Classes
 
-ループ内のクエリ実行を検出します。
+### UnifiedAnalyzer
 
-#### 設定
+Main analysis orchestrator that coordinates detection, reporting, and optional LLM integration.
+
+#### Class Definition
 
 ```python
-config = DetectorConfig(
-    custom_params={
-        'loop_threshold': 5  # ループ回数の閾値
-    }
-)
+class UnifiedAnalyzer:
+    """
+    Unified analyzer for multi-database static code analysis.
 
-detector = NPlusOneDetector(config=config)
+    Coordinates detection across multiple database types and provides
+    comprehensive reporting capabilities.
+    """
 ```
 
-#### 検出ロジック
+#### Constructor
 
 ```python
-def detect(self, queries: List[ElasticsearchQuery], context: AnalysisContext) -> List[Issue]:
+def __init__(
+    self,
+    config: Optional[AnalysisConfig] = None,
+    enable_llm: bool = False,
+    api_key: Optional[str] = None
+) -> None:
     """
-    ループ内のクエリ実行を検出
+    Initialize UnifiedAnalyzer.
 
-    検出条件:
-    1. for/while/do-whileループ内
-    2. ループ回数 > threshold
-    3. バッチクエリが使用されていない
+    Args:
+        config: Analysis configuration. If None, uses defaults.
+        enable_llm: Whether to enable LLM-based semantic analysis.
+        api_key: Anthropic API key for LLM integration.
+
+    Raises:
+        ValueError: If LLM is enabled but no API key provided.
+    """
+```
+
+#### Methods
+
+##### `analyze()`
+
+```python
+def analyze(
+    self,
+    source_paths: List[Union[str, Path]],
+    recursive: bool = True
+) -> AnalysisResult:
+    """
+    Analyze source code files for database issues.
+
+    Args:
+        source_paths: List of file or directory paths to analyze.
+        recursive: Whether to recursively scan directories.
+
+    Returns:
+        AnalysisResult containing detected issues, statistics, and metadata.
+
+    Raises:
+        FileNotFoundError: If a source path doesn't exist.
+        PermissionError: If a file cannot be read.
+
+    Example:
+        >>> analyzer = UnifiedAnalyzer()
+        >>> result = analyzer.analyze(["/path/to/code"])
+        >>> print(f"Issues: {result.total_issues}")
+    """
+```
+
+##### `analyze_file()`
+
+```python
+def analyze_file(
+    self,
+    file_path: Union[str, Path]
+) -> List[Issue]:
+    """
+    Analyze a single file.
+
+    Args:
+        file_path: Path to the file to analyze.
+
+    Returns:
+        List of issues found in the file.
+
+    Example:
+        >>> issues = analyzer.analyze_file("service.java")
+        >>> for issue in issues:
+        ...     print(issue.title)
+    """
+```
+
+##### `generate_reports()`
+
+```python
+def generate_reports(
+    self,
+    result: AnalysisResult,
+    output_dir: Path,
+    formats: List[str] = ["html", "json"]
+) -> Dict[str, Path]:
+    """
+    Generate reports in multiple formats.
+
+    Args:
+        result: Analysis result to report.
+        output_dir: Directory to save reports.
+        formats: List of formats ('html', 'json', 'markdown', 'console').
+
+    Returns:
+        Dictionary mapping format to generated file path.
+
+    Example:
+        >>> reports = analyzer.generate_reports(
+        ...     result,
+        ...     Path("./reports"),
+        ...     ["html", "json"]
+        ... )
+        >>> print(reports["html"])
     """
 ```
 
 ---
 
-### LargeSizeDetector
+### AnalysisConfig
 
-過大なサイズ指定を検出します。
+Configuration for analysis behavior.
 
-#### 設定
+#### Class Definition
 
 ```python
-config = DetectorConfig(
-    custom_params={
-        'size_threshold': 1000  # サイズ閾値
-    }
-)
+@dataclass
+class AnalysisConfig:
+    """
+    Configuration for unified analysis.
 
-detector = LargeSizeDetector(config=config)
+    Controls which detectors are enabled, file patterns,
+    and analysis behavior.
+    """
 ```
 
-#### 検出ロジック
+#### Fields
 
 ```python
-def detect(self, queries: List[ElasticsearchQuery], context: AnalysisContext) -> List[Issue]:
-    """
-    大きすぎるsizeパラメータを検出
+# Database configuration
+enable_elasticsearch: bool = True
+enable_mysql: bool = True
 
-    検出条件:
-    - searchSourceBuilder.size(n) where n > threshold
-    """
+# Parser configuration
+java_include_patterns: List[str] = field(default_factory=lambda: ["**/*.java"])
+java_exclude_patterns: List[str] = field(default_factory=lambda: ["**/test/**"])
+python_include_patterns: List[str] = field(default_factory=lambda: ["**/*.py"])
+python_exclude_patterns: List[str] = field(default_factory=lambda: ["**/test/**"])
+
+# Analysis behavior
+max_file_size: int = 1_000_000  # bytes
+timeout_per_file: int = 30  # seconds
+parallel_analysis: bool = False  # Future feature
+max_workers: int = 4
+
+# LLM configuration
+llm_model: str = "claude-sonnet-3-5-20241022"
+llm_temperature: float = 0.0
+llm_max_tokens: int = 4096
+llm_max_retries: int = 3
+llm_timeout: int = 30
+```
+
+#### Example
+
+```python
+from multidb_analyzer.unified.analysis_config import AnalysisConfig
+
+config = AnalysisConfig(
+    enable_elasticsearch=True,
+    enable_mysql=False,
+    java_exclude_patterns=["**/test/**", "**/generated/**"],
+    max_file_size=500_000
+)
 ```
 
 ---
 
-## LLM統合 API
+### AnalysisResult
 
-### ClaudeClient
+Contains analysis results and statistics.
 
-Claude APIクライアント。
-
-#### クラス定義
+#### Class Definition
 
 ```python
-class ClaudeClient:
+@dataclass
+class AnalysisResult:
     """
-    Claude API統合クライアント
-
-    Attributes:
-        api_key (str): Anthropic APIキー
-        model (ClaudeModel): 使用するモデル
-        max_retries (int): 最大リトライ回数
-        timeout (int): タイムアウト（秒）
-        usage (APIUsage): 使用統計
+    Result of code analysis containing issues and metadata.
     """
 ```
 
-#### 初期化
+#### Fields
 
 ```python
-from multidb_analyzer.llm import ClaudeClient, ClaudeModel
+# Metadata
+timestamp: datetime
+version: str = "1.0.0"
 
-# APIキー指定
-client = ClaudeClient(
-    api_key="sk-ant-xxxxx",
-    model=ClaudeModel.SONNET,
-    max_retries=3,
-    timeout=60
-)
+# Statistics
+total_files: int
+analyzed_files: int
+skipped_files: int = 0
+execution_time: float  # seconds
 
-# 環境変数から取得
-# ANTHROPIC_API_KEY環境変数を設定
-client = ClaudeClient()
+# Issues
+issues: List[Issue]
+warnings: List[str] = field(default_factory=list)
+errors: List[str] = field(default_factory=list)
+
+# Statistics (calculated automatically)
+total_issues: int = 0
+issues_by_severity: Dict[str, int] = field(default_factory=dict)
+issues_by_category: Dict[str, int] = field(default_factory=dict)
+issues_by_database: Dict[str, int] = field(default_factory=dict)
 ```
 
-#### メソッド
-
-##### `generate(prompt: str, system_prompt: Optional[str] = None, **kwargs) -> str`
-
-テキストを生成します。
-
-**パラメータ**:
-- `prompt` (str): ユーザープロンプト
-- `system_prompt` (Optional[str]): システムプロンプト
-- `max_tokens` (int): 最大トークン数（デフォルト: 4096）
-- `temperature` (float): 生成温度（デフォルト: 0.7）
-- `model` (Optional[ClaudeModel]): モデル上書き
-
-**戻り値**:
-- `str`: 生成されたテキスト
-
-**例外**:
-- `APIError`: API呼び出しが失敗した場合
-
-**使用例**:
+#### Methods
 
 ```python
-response = client.generate(
-    prompt="Optimize this query: ...",
-    system_prompt="You are a database expert.",
-    max_tokens=2048,
-    temperature=0.3
-)
+def to_dict(self) -> dict:
+    """Convert to dictionary for JSON serialization."""
+
+def to_json(self, indent: int = 2) -> str:
+    """Convert to JSON string."""
+
+def filter_by_severity(self, *severities: Severity) -> List[Issue]:
+    """Filter issues by severity level."""
+
+def filter_by_category(self, *categories: IssueCategory) -> List[Issue]:
+    """Filter issues by category."""
+
+def filter_by_database(self, database: str) -> List[Issue]:
+    """Filter issues by database type."""
 ```
 
-##### `generate_batch(prompts: List[str], delay_between_requests: float = 1.0, **kwargs) -> List[str]`
-
-複数のプロンプトをバッチ処理します。
-
-**パラメータ**:
-- `prompts` (List[str]): プロンプトのリスト
-- `delay_between_requests` (float): リクエスト間の遅延（秒）
-- `**kwargs`: generate()に渡される追加パラメータ
-
-**戻り値**:
-- `List[str]`: 生成されたテキストのリスト
-
-**使用例**:
+#### Example
 
 ```python
-prompts = [
-    "Analyze query 1: ...",
-    "Analyze query 2: ...",
-    "Analyze query 3: ..."
-]
+result = analyzer.analyze(["/path/to/code"])
 
-responses = client.generate_batch(
-    prompts,
-    delay_between_requests=1.5,
-    temperature=0.3
-)
-```
+# Access statistics
+print(f"Analyzed {result.analyzed_files} files")
+print(f"Found {result.total_issues} issues")
+print(f"Execution time: {result.execution_time:.2f}s")
 
-##### `get_usage_stats() -> Dict[str, Any]`
-
-API使用統計を取得します。
-
-**戻り値**:
-```python
-{
-    'total_requests': int,
-    'total_tokens': int,
-    'input_tokens': int,
-    'output_tokens': int,
-    'total_cost_usd': float,
-    'average_cost_per_request': float,
-    'request_history': List[Dict[str, Any]]
-}
-```
-
-**使用例**:
-
-```python
-stats = client.get_usage_stats()
-print(f"Total cost: ${stats['total_cost_usd']:.4f}")
-print(f"Requests: {stats['total_requests']}")
-```
-
-##### `reset_usage_stats() -> None`
-
-使用統計をリセットします。
-
-```python
-client.reset_usage_stats()
+# Filter issues
+critical = result.filter_by_severity(Severity.CRITICAL)
+performance = result.filter_by_category(IssueCategory.PERFORMANCE)
+es_issues = result.filter_by_database("elasticsearch")
 ```
 
 ---
-
-### LLMOptimizer
-
-LLMを使用したコード最適化エンジン。
-
-#### クラス定義
-
-```python
-class LLMOptimizer:
-    """
-    LLM最適化エンジン
-
-    Attributes:
-        client (ClaudeClient): Claude APIクライアント
-        temperature (float): 生成温度
-        max_tokens (int): 最大トークン数
-    """
-```
-
-#### 初期化
-
-```python
-from multidb_analyzer.llm import LLMOptimizer, ClaudeModel
-
-optimizer = LLMOptimizer(
-    api_key="sk-ant-xxxxx",
-    model=ClaudeModel.SONNET,
-    temperature=0.3,
-    max_tokens=4096
-)
-```
-
-#### メソッド
-
-##### `optimize_issue(issue: Issue, code: str, language: str = "java", db_type: str = "elasticsearch") -> OptimizationResult`
-
-単一の問題を最適化します。
-
-**パラメータ**:
-- `issue` (Issue): 検出された問題
-- `code` (str): 元のコード
-- `language` (str): プログラミング言語
-- `db_type` (str): データベースタイプ
-
-**戻り値**:
-- `OptimizationResult`: 最適化結果
-
-**使用例**:
-
-```python
-result = optimizer.optimize_issue(
-    issue=detected_issue,
-    code='wildcardQuery("name", "*smith")',
-    language="java",
-    db_type="elasticsearch"
-)
-
-print(f"Root cause: {result.root_cause}")
-print(f"Performance impact: {result.performance_impact}")
-print(f"Optimized code:\n{result.optimized_code}")
-print(f"Confidence: {result.confidence_score}")
-```
-
-##### `optimize_batch(issues: List[Issue], code_snippets: Dict[str, str], **kwargs) -> List[OptimizationResult]`
-
-複数の問題をバッチ最適化します。
-
-**パラメータ**:
-- `issues` (List[Issue]): 問題のリスト
-- `code_snippets` (Dict[str, str]): ファイル:行番号 → コードのマッピング
-- `language` (str): プログラミング言語
-- `db_type` (str): データベースタイプ
-
-**戻り値**:
-- `List[OptimizationResult]`: 最適化結果のリスト
-
-**使用例**:
-
-```python
-code_snippets = {
-    "SearchService.java:10": 'wildcardQuery("name", "*smith")',
-    "SearchService.java:25": 'searchSourceBuilder.size(10000)'
-}
-
-results = optimizer.optimize_batch(
-    issues=detected_issues,
-    code_snippets=code_snippets,
-    language="java"
-)
-```
-
-##### `prioritize_issues(issues: List[Issue]) -> Dict[str, Any]`
-
-問題の優先順位を決定します。
-
-**パラメータ**:
-- `issues` (List[Issue]): 問題のリスト
-
-**戻り値**:
-```python
-{
-    'prioritized_issues': [
-        {
-            'issue_id': int,
-            'priority_score': float,
-            'recommended_order': int
-        }
-    ],
-    'quick_wins': List[str],
-    'high_risk_high_reward': List[str],
-    'technical_debt': List[str]
-}
-```
-
-**使用例**:
-
-```python
-prioritization = optimizer.prioritize_issues(all_issues)
-
-for item in prioritization['prioritized_issues']:
-    issue = all_issues[item['issue_id']]
-    print(f"{item['recommended_order']}. {issue.title}")
-    print(f"   Priority score: {item['priority_score']}")
-```
-
-##### `generate_auto_fix(issue: Issue, code: str, **kwargs) -> Dict[str, Any]`
-
-自動修正コードを生成します。
-
-**パラメータ**:
-- `issue` (Issue): 問題
-- `code` (str): 元のコード
-- `db_type` (str): データベースタイプ
-- `framework` (str): フレームワーク
-- `language` (str): プログラミング言語
-
-**戻り値**:
-```python
-{
-    'fixed_code': str,
-    'confidence': float,
-    'breaking_changes': bool,
-    'migration_notes': str
-}
-```
-
-**使用例**:
-
-```python
-fix = optimizer.generate_auto_fix(
-    issue=wildcard_issue,
-    code='wildcardQuery("name", "*smith")',
-    db_type="elasticsearch",
-    framework="Spring Data"
-)
-
-if fix['confidence'] > 0.8:
-    print(f"Fixed code:\n{fix['fixed_code']}")
-    if fix['breaking_changes']:
-        print(f"Warning: {fix['migration_notes']}")
-```
-
----
-
-### PromptTemplates
-
-プロンプトテンプレート集。
-
-#### 定数
-
-```python
-SYSTEM_PROMPT: str  # システムプロンプト
-ELASTICSEARCH_OPTIMIZATION: str  # Elasticsearch最適化テンプレート
-PRIORITIZE_ISSUES: str  # 問題優先順位付けテンプレート
-CODE_REVIEW: str  # コードレビューテンプレート
-AUTO_FIX_GENERATION: str  # 自動修正生成テンプレート
-```
-
-#### クラスメソッド
-
-##### `format_elasticsearch_optimization(issue: Issue, code: str, language: str) -> str`
-
-Elasticsearch最適化プロンプトをフォーマットします。
-
-```python
-from multidb_analyzer.llm import PromptTemplates
-
-prompt = PromptTemplates.format_elasticsearch_optimization(
-    issue=detected_issue,
-    code=original_code,
-    language="java"
-)
-```
-
-##### `format_prioritize_issues(issues: List[Issue]) -> str`
-
-優先順位付けプロンプトをフォーマットします。
-
-```python
-prompt = PromptTemplates.format_prioritize_issues(all_issues)
-```
-
----
-
-## レポーター API
-
-### HTMLReporter
-
-HTML形式のレポートを生成します。
-
-#### クラス定義
-
-```python
-class HTMLReporter:
-    """
-    HTMLレポート生成器
-
-    Attributes:
-        config (ReportConfig): レポート設定
-    """
-```
-
-#### 使用例
-
-```python
-from multidb_analyzer.reporters import HTMLReporter, ReportConfig
-
-config = ReportConfig(
-    title="Elasticsearch Analysis Report",
-    include_statistics=True,
-    include_code_snippets=True,
-    max_snippet_lines=15
-)
-
-reporter = HTMLReporter(config=config)
-reporter.generate(issues, output_path='report.html')
-```
-
----
-
-## コアモデル
 
 ### Issue
 
-検出された問題を表すモデル。
+Represents a detected code issue.
 
-#### 定義
+#### Class Definition
 
 ```python
 @dataclass
 class Issue:
-    detector_name: str
-    severity: Severity
-    category: IssueCategory
-    title: str
-    description: str
-    file_path: str
-    line_number: int
-    query_text: Optional[str] = None
-    suggestion: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    """
+    Represents a detected code issue with metadata.
+    """
 ```
 
-#### 使用例
+#### Fields
 
 ```python
-issue = Issue(
-    detector_name="WildcardDetector",
-    severity=Severity.CRITICAL,
-    category=IssueCategory.PERFORMANCE,
-    title="Leading Wildcard Query",
-    description="Query uses leading wildcard which causes full index scan",
-    file_path="SearchService.java",
-    line_number=42,
-    query_text='wildcardQuery("name", "*smith")',
-    suggestion="Use prefixQuery() or matchQuery() instead"
-)
+# Identification
+detector_name: str
+severity: Severity
+category: IssueCategory
+
+# Description
+title: str
+description: str
+suggestion: Optional[str] = None
+
+# Location
+file_path: Optional[Path] = None
+line_number: Optional[int] = None
+column_number: Optional[int] = None
+code_snippet: Optional[str] = None
+
+# Context
+query_text: Optional[str] = None
+method_name: Optional[str] = None
+class_name: Optional[str] = None
+
+# Fix information
+auto_fix_available: bool = False
+fix_code: Optional[str] = None
+fix_confidence: float = 0.0
+
+# Metadata
+detected_at: datetime = field(default_factory=datetime.now)
+llm_analyzed: bool = False
 ```
 
-### Severity
-
-重大度の列挙型。
+#### Enums
 
 ```python
 class Severity(Enum):
-    CRITICAL = "CRITICAL"  # 即座に対応が必要
-    HIGH = "HIGH"          # 優先度高
-    MEDIUM = "MEDIUM"      # 中程度
-    LOW = "LOW"            # 低優先度
-    INFO = "INFO"          # 情報提供
-```
+    """Issue severity levels."""
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    INFO = "info"
 
-### IssueCategory
-
-問題カテゴリの列挙型。
-
-```python
 class IssueCategory(Enum):
-    PERFORMANCE = "PERFORMANCE"
-    SECURITY = "SECURITY"
-    MAINTAINABILITY = "MAINTAINABILITY"
-    RELIABILITY = "RELIABILITY"
-    BEST_PRACTICE = "BEST_PRACTICE"
+    """Issue categories."""
+    PERFORMANCE = "performance"
+    SECURITY = "security"
+    RELIABILITY = "reliability"
+    MAINTAINABILITY = "maintainability"
+    SCALABILITY = "scalability"
 ```
 
-### AnalysisContext
-
-分析コンテキスト。
+#### Example
 
 ```python
-@dataclass
-class AnalysisContext:
-    file_path: str
-    code_content: str
-    language: str = "java"
-    db_type: str = "elasticsearch"
-    metadata: Optional[Dict[str, Any]] = None
-```
+from multidb_analyzer.core.base_detector import Issue, Severity, IssueCategory
 
----
-
-## ユーティリティ
-
-### FileUtils
-
-ファイル操作ユーティリティ。
-
-#### メソッド
-
-```python
-from multidb_analyzer.utils import FileUtils
-
-# Javaファイルを検索
-java_files = FileUtils.find_files(
-    directory='/path/to/project',
-    extension='.java',
-    exclude_patterns=['**/test/**', '**/generated/**']
-)
-
-# コード行数をカウント
-loc = FileUtils.count_lines_of_code(file_path)
-
-# ファイルエンコーディング検出
-encoding = FileUtils.detect_encoding(file_path)
-```
-
-### CodeSnippetExtractor
-
-コードスニペット抽出ユーティリティ。
-
-```python
-from multidb_analyzer.utils import CodeSnippetExtractor
-
-extractor = CodeSnippetExtractor()
-
-# 行番号周辺のコードを抽出
-snippet = extractor.extract(
-    file_path='SearchService.java',
+issue = Issue(
+    detector_name="ElasticsearchWildcardDetector",
+    severity=Severity.HIGH,
+    category=IssueCategory.PERFORMANCE,
+    title="Wildcard query on analyzed field",
+    description="Using wildcard query on analyzed field causes performance issues",
+    file_path=Path("/src/service.java"),
     line_number=42,
-    context_lines=5  # 前後5行
+    suggestion="Use match query or keyword field"
 )
 ```
 
 ---
 
-## エラーハンドリング
+## Detectors
 
-### 例外クラス
+### Base Detector
+
+All detectors inherit from `BaseDetector`.
 
 ```python
-from multidb_analyzer.exceptions import (
+from multidb_analyzer.core.base_detector import BaseDetector
+
+class MyDetector(BaseDetector):
+    def detect(self, code: str, file_path: Path) -> List[Issue]:
+        """
+        Detect issues in code.
+
+        Args:
+            code: Source code content.
+            file_path: Path to the file being analyzed.
+
+        Returns:
+            List of detected issues.
+        """
+        issues = []
+        # Your detection logic
+        return issues
+```
+
+### Elasticsearch Detectors
+
+```python
+from multidb_analyzer.elasticsearch.detectors import (
+    ElasticsearchWildcardDetector,
+    DeepPaginationDetector,
+    LargeResultSetDetector,
+    MissingTimeoutDetector
+)
+
+# Use individually
+detector = ElasticsearchWildcardDetector()
+issues = detector.detect(code, file_path)
+```
+
+### MySQL Detectors
+
+```python
+from multidb_analyzer.mysql.detectors import (
+    MySQLNPlusOneDetector,
+    MissingIndexDetector,
+    SelectNPlusOneDetector
+)
+
+detector = MySQLNPlusOneDetector()
+issues = detector.detect(code, file_path)
+```
+
+---
+
+## Reporters
+
+### HTML Reporter
+
+```python
+from multidb_analyzer.unified.reporters import HTMLReporter
+
+reporter = HTMLReporter(
+    include_toc=True,
+    include_statistics=True,
+    theme="dark"  # or "light"
+)
+
+output_path = reporter.generate(result, Path("report.html"))
+```
+
+### JSON Reporter
+
+```python
+from multidb_analyzer.unified.reporters import JSONReporter
+
+reporter = JSONReporter(
+    pretty_print=True,
+    include_metadata=True
+)
+
+output_path = reporter.generate(result, Path("report.json"))
+```
+
+### Markdown Reporter
+
+```python
+from multidb_analyzer.unified.reporters import MarkdownReporter
+
+reporter = MarkdownReporter(
+    include_toc=True,
+    include_summary=True
+)
+
+output_path = reporter.generate(result, Path("report.md"))
+```
+
+### Console Reporter
+
+```python
+from multidb_analyzer.unified.reporters import ConsoleReporter
+
+reporter = ConsoleReporter(
+    color=True,
+    verbose=True
+)
+
+output_path = reporter.generate(result, Path("report.txt"))
+```
+
+---
+
+## Utilities
+
+### File Utilities
+
+```python
+from multidb_analyzer.utils.file_utils import (
+    find_files,
+    read_file,
+    is_java_file,
+    is_python_file
+)
+
+# Find files matching pattern
+java_files = find_files("/path/to/code", "**/*.java")
+
+# Read file content
+content = read_file(Path("/path/to/file.java"))
+
+# Check file type
+if is_java_file(file_path):
+    # Process Java file
+    pass
+```
+
+### Code Parsers
+
+```python
+from multidb_analyzer.parsers import JavaParser, PythonParser
+
+# Java parser
+java_parser = JavaParser()
+ast = java_parser.parse(java_code)
+methods = java_parser.extract_methods(ast)
+
+# Python parser
+python_parser = PythonParser()
+ast = python_parser.parse(python_code)
+functions = python_parser.extract_functions(ast)
+```
+
+---
+
+## Examples
+
+### Example 1: Basic Analysis
+
+```python
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
+
+# Create analyzer with defaults
+analyzer = UnifiedAnalyzer()
+
+# Analyze directory
+result = analyzer.analyze(["/path/to/code"])
+
+# Print summary
+print(f"Total files: {result.total_files}")
+print(f"Total issues: {result.total_issues}")
+print(f"Execution time: {result.execution_time:.2f}s")
+
+# Print issues by severity
+for severity, count in result.issues_by_severity.items():
+    print(f"{severity}: {count}")
+```
+
+### Example 2: Custom Configuration
+
+```python
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
+from multidb_analyzer.unified.analysis_config import AnalysisConfig
+
+# Custom configuration
+config = AnalysisConfig(
+    enable_elasticsearch=True,
+    enable_mysql=False,
+    java_exclude_patterns=[
+        "**/test/**",
+        "**/generated/**",
+        "**/build/**"
+    ],
+    max_file_size=500_000
+)
+
+# Create analyzer
+analyzer = UnifiedAnalyzer(config)
+
+# Analyze
+result = analyzer.analyze(["/path/to/code"])
+```
+
+### Example 3: LLM Integration
+
+```python
+import os
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
+
+# Get API key from environment
+api_key = os.getenv("ANTHROPIC_API_KEY")
+
+# Create analyzer with LLM
+analyzer = UnifiedAnalyzer(
+    enable_llm=True,
+    api_key=api_key
+)
+
+# Analyze
+result = analyzer.analyze(["/path/to/code"])
+
+# Check which issues were LLM-analyzed
+llm_issues = [i for i in result.issues if i.llm_analyzed]
+print(f"LLM analyzed {len(llm_issues)} issues")
+```
+
+### Example 4: Filtering Issues
+
+```python
+from multidb_analyzer.core.base_detector import Severity, IssueCategory
+
+result = analyzer.analyze(["/path/to/code"])
+
+# Get critical and high severity issues
+critical_high = result.filter_by_severity(Severity.CRITICAL, Severity.HIGH)
+print(f"Critical/High: {len(critical_high)}")
+
+# Get performance issues
+performance = result.filter_by_category(IssueCategory.PERFORMANCE)
+print(f"Performance issues: {len(performance)}")
+
+# Get Elasticsearch issues
+es_issues = result.filter_by_database("elasticsearch")
+print(f"Elasticsearch issues: {len(es_issues)}")
+
+# Combine filters
+critical_performance = [
+    issue for issue in result.issues
+    if issue.severity == Severity.CRITICAL
+    and issue.category == IssueCategory.PERFORMANCE
+]
+```
+
+### Example 5: Generate Multiple Reports
+
+```python
+from pathlib import Path
+
+result = analyzer.analyze(["/path/to/code"])
+
+# Generate all report formats
+reports = analyzer.generate_reports(
+    result,
+    output_dir=Path("./reports"),
+    formats=["html", "json", "markdown", "console"]
+)
+
+# Print generated report paths
+for format_name, file_path in reports.items():
+    print(f"{format_name}: {file_path}")
+```
+
+### Example 6: Custom Detector
+
+```python
+from multidb_analyzer.core.base_detector import BaseDetector, Issue, Severity, IssueCategory
+from pathlib import Path
+from typing import List
+
+class CustomElasticsearchDetector(BaseDetector):
+    """Custom detector for Elasticsearch issues."""
+
+    def detect(self, code: str, file_path: Path) -> List[Issue]:
+        issues = []
+
+        # Custom detection logic
+        if "SearchRequest" in code and "setSize(10000)" in code:
+            issues.append(Issue(
+                detector_name="CustomElasticsearchDetector",
+                severity=Severity.HIGH,
+                category=IssueCategory.PERFORMANCE,
+                title="Large result set requested",
+                description="Requesting 10,000 results can cause memory issues",
+                file_path=file_path,
+                suggestion="Use scroll API for large result sets"
+            ))
+
+        return issues
+
+# Use custom detector
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
+
+analyzer = UnifiedAnalyzer()
+analyzer.register_detector(CustomElasticsearchDetector())
+result = analyzer.analyze(["/path/to/code"])
+```
+
+### Example 7: Programmatic Report Generation
+
+```python
+from multidb_analyzer.unified.reporters import HTMLReporter, JSONReporter
+from pathlib import Path
+
+result = analyzer.analyze(["/path/to/code"])
+
+# HTML report with custom settings
+html_reporter = HTMLReporter(
+    include_toc=True,
+    include_statistics=True,
+    theme="dark"
+)
+html_path = html_reporter.generate(result, Path("custom_report.html"))
+
+# JSON report for CI/CD
+json_reporter = JSONReporter(pretty_print=True)
+json_path = json_reporter.generate(result, Path("ci_report.json"))
+
+# Parse JSON for further processing
+import json
+with open(json_path) as f:
+    data = json.load(f)
+    critical_count = data["statistics"]["by_severity"]["critical"]
+    if critical_count > 0:
+        raise SystemExit(f"Found {critical_count} critical issues!")
+```
+
+### Example 8: Progress Callback
+
+```python
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
+from typing import Optional
+
+def progress_callback(current: int, total: int, file_path: Optional[str] = None):
+    """Called for each file analyzed."""
+    percent = (current / total) * 100
+    print(f"Progress: {percent:.1f}% ({current}/{total}) - {file_path}")
+
+analyzer = UnifiedAnalyzer()
+result = analyzer.analyze(
+    ["/path/to/code"],
+    progress_callback=progress_callback
+)
+```
+
+### Example 9: Error Handling
+
+```python
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
+from multidb_analyzer.core.exceptions import (
+    AnalysisError,
     ParsingError,
-    DetectionError,
-    LLMError,
-    ConfigurationError
+    DetectionError
 )
 
+analyzer = UnifiedAnalyzer()
+
 try:
-    queries = parser.parse_file(file_path, code)
+    result = analyzer.analyze(["/path/to/code"])
+except FileNotFoundError as e:
+    print(f"Path not found: {e}")
+except PermissionError as e:
+    print(f"Permission denied: {e}")
 except ParsingError as e:
-    logger.error(f"Failed to parse {file_path}: {e}")
-    # エラー処理
+    print(f"Failed to parse file: {e}")
+    # Continue with partial results
+    result = analyzer.get_partial_results()
+except AnalysisError as e:
+    print(f"Analysis failed: {e}")
+finally:
+    # Always generate reports if we have results
+    if 'result' in locals():
+        analyzer.generate_reports(result, Path("./reports"))
+```
 
-try:
-    response = client.generate(prompt)
-except LLMError as e:
-    logger.error(f"LLM API failed: {e}")
-    # フォールバック処理
+### Example 10: Batch Processing
+
+```python
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
+from pathlib import Path
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+
+analyzer = UnifiedAnalyzer()
+
+# Batch process multiple projects
+projects = [
+    "/path/to/project1",
+    "/path/to/project2",
+    "/path/to/project3"
+]
+
+results = {}
+for project in projects:
+    project_name = Path(project).name
+    logging.info(f"Analyzing {project_name}...")
+
+    result = analyzer.analyze([project])
+    results[project_name] = result
+
+    # Generate individual reports
+    analyzer.generate_reports(
+        result,
+        Path(f"./reports/{project_name}"),
+        formats=["html", "json"]
+    )
+
+    logging.info(
+        f"{project_name}: "
+        f"{result.total_issues} issues, "
+        f"{result.execution_time:.2f}s"
+    )
+
+# Summary report
+total_issues = sum(r.total_issues for r in results.values())
+print(f"\nTotal issues across {len(projects)} projects: {total_issues}")
 ```
 
 ---
 
-## ベストプラクティス
+## Type Hints
 
-### 1. リソース管理
+The API uses comprehensive type hints for better IDE support:
 
 ```python
-# コンテキストマネージャーを使用
-with ClaudeClient(api_key=api_key) as client:
-    response = client.generate(prompt)
-# 自動的にクリーンアップ
+from typing import List, Optional, Union, Dict
+from pathlib import Path
+
+def analyze(
+    source_paths: List[Union[str, Path]],
+    config: Optional[AnalysisConfig] = None
+) -> AnalysisResult:
+    ...
 ```
 
-### 2. エラーハンドリング
+Use a type checker like `mypy` for validation:
 
-```python
-try:
-    result = optimizer.optimize_issue(issue, code)
-except LLMError:
-    # フォールバック
-    result = create_fallback_result(issue, code)
-```
-
-### 3. バッチ処理
-
-```python
-# 大量の問題を処理する場合
-BATCH_SIZE = 10
-for i in range(0, len(issues), BATCH_SIZE):
-    batch = issues[i:i+BATCH_SIZE]
-    results = optimizer.optimize_batch(batch, code_snippets)
-    process_results(results)
+```bash
+mypy your_script.py
 ```
 
 ---
 
-## バージョン互換性
+## Thread Safety
 
-| API | v1.0.0 | 備考 |
-|-----|--------|------|
-| ClaudeClient | ✅ | 安定版 |
-| LLMOptimizer | ✅ | 安定版 |
-| BaseDetector | ✅ | 安定版 |
-| HTMLReporter | ✅ | 安定版 |
+The analyzer is **not thread-safe** by default. For concurrent analysis:
+
+```python
+from multidb_analyzer.unified.analyzer import UnifiedAnalyzer
+from concurrent.futures import ThreadPoolExecutor
+
+# Create separate analyzer instances
+def analyze_project(project_path):
+    analyzer = UnifiedAnalyzer()  # New instance per thread
+    return analyzer.analyze([project_path])
+
+with ThreadPoolExecutor(max_workers=4) as executor:
+    projects = ["/path1", "/path2", "/path3"]
+    results = list(executor.map(analyze_project, projects))
+```
 
 ---
 
-**次のステップ**: [EXAMPLES.md](./EXAMPLES.md)で実用的なサンプルコードを確認してください。
+## Performance Tips
+
+1. **Exclude unnecessary files**: Configure `exclude_patterns` to skip test files, generated code, etc.
+2. **Limit file size**: Set `max_file_size` to skip very large files
+3. **Disable LLM for large codebases**: LLM analysis is slower but more accurate
+4. **Use specific database types**: Enable only the databases you use
+5. **Batch file analysis**: Analyze files in batches for better performance
+
+---
+
+## API Versioning
+
+The API follows [Semantic Versioning](https://semver.org/):
+- **Major version** (1.x.x): Breaking changes
+- **Minor version** (x.1.x): New features, backward compatible
+- **Patch version** (x.x.1): Bug fixes
+
+Check version:
+```python
+import multidb_analyzer
+print(multidb_analyzer.__version__)  # "1.0.0"
+```
+
+---
+
+**For more information:**
+- [CLI Usage Guide](./CLI_USAGE.md)
+- [Integration Guide](./INTEGRATION_GUIDE.md)
+- [Examples](./EXAMPLES.md)
+- [GitHub Repository](https://github.com/your-org/multidb-analyzer)
