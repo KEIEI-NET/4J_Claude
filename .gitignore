@@ -53,3 +53,7 @@ phase4_multidb/test_*.py
 phase4_multidb/test_*.txt
 phase4_multidb/*_output.txt
 phase4_multidb/*_results.txt
+
+# Log files and data
+phase4_visualization/logs/
+phase4_visualization/data/
