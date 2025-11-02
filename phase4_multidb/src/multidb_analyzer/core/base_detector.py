@@ -66,7 +66,7 @@ class Issue:
             "category": self.category.value,
             "title": self.title,
             "description": self.description,
-            "file_path": self.file_path,
+            "file_path": str(self.file_path),
             "line_number": self.line_number,
             "query_text": self.query_text,
             "method_name": self.method_name,

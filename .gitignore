@@ -41,3 +41,15 @@ Thumbs.db
 .env
 .env.local
 nul
+
+# External repositories and large files
+src/blcloud-repos/
+src/_delphi_backup/
+.kamui/
+
+# Temporary test files
+phase4_multidb/fix_*.py
+phase4_multidb/test_*.py
+phase4_multidb/test_*.txt
+phase4_multidb/*_output.txt
+phase4_multidb/*_results.txt

@@ -301,3 +301,190 @@ Also provide:
             db_type=db_type,
             framework=framework
         )
+<<<<<<< HEAD
+=======
+
+
+class PromptBuilder:
+    """
+    LLM分析用プロンプトビルダー
+
+    Phase 6-6で使用する統合プロンプト生成クラス
+    """
+
+    ISSUE_ANALYSIS_TEMPLATE = """あなたはデータベース最適化の専門家です。以下の問題を分析してください。
+
+## 問題情報
+- **タイトル**: {title}
+- **重大度**: {severity}
+- **カテゴリ**: {category}
+- **検出器**: {detector_name}
+- **ファイル**: {file_path}:{line_number}
+
+## 検出されたクエリ
+```sql
+{query_text}
+```
+
+## 周辺コード
+```{language}
+{context_code}
+```
+
+## 現在の提案
+{current_suggestion}
+
+---
+
+## 分析依頼
+
+以下の形式で詳細な分析結果を返してください：
+
+### 1. 問題の詳細説明
+（なぜこれが問題なのか、どのような影響があるか、技術的な背景）
+
+### 2. 修正提案
+1. （具体的な修正ステップ1）
+2. （具体的な修正ステップ2）
+3. （具体的な修正ステップ3）
+
+### 3. 修正後のコード
+```{language}
+// 修正されたコード（コメント付き）
+```
+
+### 4. ベストプラクティス
+（関連する業界標準、推奨事項、注意点）
+
+### 5. 参考資料
+- （公式ドキュメントURL）
+- （参考記事URL）
+
+---
+
+**重要**: 具体的で実装可能な提案をお願いします。
+"""
+
+    BATCH_ANALYSIS_TEMPLATE = """以下の{count}件のデータベース問題を分析してください。
+
+{issues_list}
+
+---
+
+各問題について、以下の形式で分析結果を返してください：
+
+---
+## 問題 #{{issue_number}}
+
+### 1. 詳細説明
+...
+
+### 2. 修正提案
+1. ...
+2. ...
+
+### 3. 修正コード
+```{{language}}
+...
+```
+
+### 4. ベストプラクティス
+...
+
+### 5. 参考資料
+...
+
+---
+
+**重要**:
+- 各問題の分析を明確に分離してください
+- 具体的で実装可能な提案を優先してください
+"""
+
+    def build_issue_analysis_prompt(
+        self,
+        issue: Issue,
+        context_code: str = "",
+        language: str = "java"
+    ) -> str:
+        """
+        単一問題分析プロンプトを生成
+
+        Args:
+            issue: 問題
+            context_code: 周辺コード
+            language: プログラミング言語
+
+        Returns:
+            プロンプト文字列
+        """
+        return self.ISSUE_ANALYSIS_TEMPLATE.format(
+            title=issue.title,
+            severity=issue.severity.value,
+            category=issue.category.value if issue.category else "PERFORMANCE",
+            detector_name=issue.detector_name,
+            file_path=issue.file_path,
+            line_number=issue.line_number,
+            query_text=issue.query_text or "(クエリテキストなし)",
+            context_code=context_code or "(コンテキストなし)",
+            current_suggestion=issue.suggestion or "(提案なし)",
+            language=language
+        )
+
+    def build_batch_analysis_prompt(
+        self,
+        issues: List[Issue],
+        language: str = "java"
+    ) -> str:
+        """
+        バッチ分析プロンプトを生成
+
+        Args:
+            issues: 問題リスト
+            language: プログラミング言語
+
+        Returns:
+            プロンプト文字列
+        """
+        issues_list = "\n\n".join([
+            self._format_issue_for_batch(i + 1, issue, language)
+            for i, issue in enumerate(issues)
+        ])
+
+        return self.BATCH_ANALYSIS_TEMPLATE.format(
+            count=len(issues),
+            issues_list=issues_list,
+            language=language
+        )
+
+    def _format_issue_for_batch(
+        self,
+        issue_number: int,
+        issue: Issue,
+        language: str = "java"
+    ) -> str:
+        """
+        バッチ用に問題を整形
+
+        Args:
+            issue_number: 問題番号
+            issue: 問題
+            language: プログラミング言語
+
+        Returns:
+            整形された問題情報
+        """
+        return f"""## 問題 #{issue_number}
+- **タイトル**: {issue.title}
+- **重大度**: {issue.severity.value}
+- **ファイル**: {issue.file_path}:{issue.line_number}
+- **検出器**: {issue.detector_name}
+
+**クエリ**:
+```sql
+{issue.query_text or "(なし)"}
+```
+
+**説明**: {issue.description}
+"""
+>>>>>>> 7f5798be (fix(phase6-6): Complete LLM integration test fixes (506/506 tests pass))

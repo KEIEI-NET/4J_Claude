@@ -1,0 +1,24 @@
+{
+  "9d9d776c-e3d2-4de4-966c-fedb18a7a544": {
+    "email": "admin@example.com",
+    "username": "admin",
+    "full_name": "Administrator",
+    "role": "admin",
+    "id": "9d9d776c-e3d2-4de4-966c-fedb18a7a544",
+    "hashed_password": "$2b$12$i0xghkHWMsn1Af6QhDqer.8A.nAMl/YJN4eK47fE2kg/78S3buQQ6",
+    "is_active": true,
+    "created_at": "2025-10-27 11:29:25.256336",
+    "updated_at": "2025-10-27 11:29:25.256336"
+  },
+  "f97e56a9-3a26-4f2f-b961-121f51ffb884": {
+    "email": "dev1@example.com",
+    "username": "developer1",
+    "full_name": "Developer One Updated",
+    "role": "developer",
+    "id": "f97e56a9-3a26-4f2f-b961-121f51ffb884",
+    "hashed_password": "$2b$12$RB7zdtaFMQBJsdHMRV0DxOML3LwQ1E1LE8BBfzKDWY99TUlvGEWsC",
+    "is_active": true,
+    "created_at": "2025-10-27 11:33:47.120295",
+    "updated_at": "2025-10-27T11:34:07.751249"
+  }
+}

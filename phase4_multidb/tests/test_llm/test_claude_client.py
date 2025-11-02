@@ -88,7 +88,7 @@ class TestClaudeClient:
             client = ClaudeClient()
             assert client.api_key == 'env-key'
 
-    @patch('multidb_analyzer.llm.claude_client.Anthropic')
+    @patch('anthropic.Anthropic')
     def test_client_lazy_initialization(self, mock_anthropic):
         """clientプロパティの遅延初期化テスト"""
         client_instance = ClaudeClient(api_key="test-key")
@@ -102,7 +102,7 @@ class TestClaudeClient:
         # Anthropicが呼ばれたことを確認
         mock_anthropic.assert_called_once_with(api_key="test-key")
 
-    @patch('multidb_analyzer.llm.claude_client.Anthropic')
+    @patch('anthropic.Anthropic')
     def test_generate_success(self, mock_anthropic):
         """正常なテキスト生成テスト"""
         # モックレスポンスを設定
@@ -122,7 +122,7 @@ class TestClaudeClient:
         assert client.usage.input_tokens == 100
         assert client.usage.output_tokens == 50
 
-    @patch('multidb_analyzer.llm.claude_client.Anthropic')
+    @patch('anthropic.Anthropic')
     def test_generate_with_system_prompt(self, mock_anthropic):
         """システムプロンプト付きの生成テスト"""
         mock_response = Mock()
@@ -146,7 +146,7 @@ class TestClaudeClient:
         assert 'system' in call_kwargs
         assert call_kwargs['system'] == "System instructions"
 
-    @patch('multidb_analyzer.llm.claude_client.Anthropic')
+    @patch('anthropic.Anthropic')
     @patch('time.sleep')  # sleepをモック
     def test_generate_with_retry(self, mock_sleep, mock_anthropic):
         """リトライ機能のテスト"""
@@ -171,7 +171,7 @@ class TestClaudeClient:
         assert mock_client.messages.create.call_count == 3
         assert mock_sleep.call_count == 2  # 2回のリトライ間の待機
 
-    @patch('multidb_analyzer.llm.claude_client.Anthropic')
+    @patch('anthropic.Anthropic')
     def test_generate_batch(self, mock_anthropic):
         """バッチ生成のテスト"""
         mock_response = Mock()

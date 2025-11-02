@@ -44,7 +44,6 @@ class TestOptimizationResult:
             file_path="test.java",
             line_number=10
         )
-        issue.severity.value = "HIGH"
 
         result = OptimizationResult(
             issue=issue,
