@@ -2,7 +2,7 @@
 # Multi-stage build: Node.js 20 + Vite + React
 
 # ========== Builder Stage ==========
-FROM node:20-alpine as builder
+FROM node:24-alpine as builder
 
 # 作業ディレクトリ設定
 WORKDIR /app
