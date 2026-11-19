@@ -20,7 +20,7 @@ COPY . .
 RUN npm run build
 
 # ========== Production Stage ==========
-FROM nginx:1.25-alpine as production
+FROM nginx:1.30-alpine as production
 
 # Nginxユーザー設定
 RUN addgroup -g 1000 appuser && \
